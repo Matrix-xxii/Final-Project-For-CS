@@ -1,0 +1,95 @@
+@{
+    ViewData["Title"] = "Category";
+}
+
+<div class="content-header">
+    <div class="container-fluid"></div>
+</div>
+
+<section class="content">
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title font-weight-bold">Category Registration</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-group row">
+                            <label class="col-md-2 col-form-label font-weight-bold">Category</label>
+                            <div class="col-md-6">
+                                <input id="txtCategory" type="text" class="form-control" placeholder="Enter category name" />
+                            </div>
+                            <div class="col-md-2">
+                                <button id="btnCreateCat" class="btn btn-success" onclick="createCategory()">Create</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title font-weight-bold">Category List</h3>
+                    </div>
+                    <div class="card-body p-0">
+                        <table class="table table-striped mb-0" id="catTable">
+                            <thead>
+                                <tr>
+                                    <th style="width:80px;">No.</th>
+                                    <th style="width:200px;">Category</th>
+                                    <th class="text-center" style="width:120px;">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<script>
+    $(function(){
+        loadCategories();
+    });
+
+    function loadCategories(){
+        $.ajax({ url:'/api/get_all_categories', type:'GET' })
+         .done(function(data){
+            var rows = '';
+            (data.categories||[]).forEach(function(c,i){
+                var num=i+1;
+                rows += '<tr>'+
+                        '<td>'+num+'</td>'+
+                        '<td>'+c.category_name+'</td>'+
+                        '<td class="text-center"><button class="btn btn-danger btn-sm" onclick="deleteCategory('+c.id+')">Delete</button></td>'+ 
+                        '</tr>';
+            });
+            $('#catTable tbody').html(rows);
+         });
+    }
+
+    function createCategory(){
+        var name = $('#txtCategory').val().trim();
+        if(name===''){ alert('cannot be empty'); return; }
+        $.ajax({
+            type:'POST', url:'/api/set_category',
+            data:JSON.stringify({ category_name:name }),
+            contentType:'application/json; charset=utf-8'
+        }).done(function(res){
+            if(res.message=='Success'){
+                $('#txtCategory').val('');
+                loadCategories();
+            } else alert(res.message);
+        });
+    }
+
+    function deleteCategory(id){
+        if(!confirm('Delete?'))return;
+        $.post('/api/delete_category', JSON.stringify({id:id}), function(res){
+            if(res.message=='Success') loadCategories(); else alert(res.message);
+        });
+    }
+</script>

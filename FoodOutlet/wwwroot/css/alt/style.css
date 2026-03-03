@@ -1,0 +1,75 @@
+.layout-navbar-fixed .wrapper .sidebar-dark-primary .brand-link:not([class*="navbar"]) {
+    background-color: #f6fa05 !important;
+}
+
+.navbar-white {
+    background-color: #e1ad00 !important;
+}
+
+[class*="sidebar-dark-"] .sidebar a {
+    color: #fff !important;
+}
+
+a {
+    color: #090909 !important;
+    text-decoration: none !important;
+    background-color: transparent !important;
+}
+
+[class*="sidebar-dark-"] .nav-sidebar > .nav-item.menu-open > .nav-link, [class*="sidebar-dark-"] .nav-sidebar > .nav-item:hover > .nav-link, [class*="sidebar-dark-"] .nav-sidebar > .nav-item > .nav-link:focus {
+    color: #fff !important;
+    background-color: #b59324  !important;
+}
+
+[class*="sidebar-dark-"] .nav-treeview > .nav-item > .nav-link {
+    color: #fff !important;
+    background-color: #640909  !important;
+}
+
+    [class*="sidebar-dark-"] .nav-treeview > .nav-item > .nav-link:focus, [class*="sidebar-dark-"] .nav-treeview > .nav-item > .nav-link:hover {
+        /*background-color: #a31a15 !important;*/
+        background-color: #a89867 !important;
+        color: #fff !important;
+    }
+
+a:hover {
+    color: #640909  !important;
+    text-decoration: none !important;
+}
+
+[class*="sidebar-dark-"] .user-panel a:hover {
+    color: #640909 ;
+}
+
+.navbar-light .navbar-nav .nav-link {
+    color: rgb(255, 255, 255) !important;
+}
+
+.navbar-light .navbar-nav .nav-link:hover, .navbar-light .navbar-nav .nav-link:focus {
+    color: rgb(160, 160, 160) !important;
+}
+
+[class*="sidebar-dark"] .user-panel {
+    border-bottom: 1px solid #4b545c !important;
+}
+
+[class*="sidebar-dark-"] {
+    background-color: #a31a15 !important;
+}
+
+.card-aam {
+    border-top: 3px solid #640909  !important;
+}
+
+.sidebar-dark-primary .nav-sidebar > .nav-item > .nav-link.active {
+    background-color: #b59324  !important;
+}
+
+[class*="sidebar-dark-"] .nav-treeview > .nav-item > .nav-link.active {
+    background-color: #e1ad00 !important;
+    color: #fff !important;
+}
+
+.navbar-light {
+    background-color: #a31a15 !important;
+}

@@ -1,0 +1,83 @@
+@{
+    ViewData["Title"] = "Staff Resign Records";
+}
+
+<div class="content-header">
+    <div class="container-fluid">
+    </div>
+</div>
+
+<section class="content">
+    <div class="container-fluid">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h3 class="card-title font-weight-bold">Staff Resign Records</h3>
+            </div>
+            <div class="card-body">
+                <table id="resignTable" class="table table-bordered table-striped">
+                    <thead>
+                        <tr>
+                            <th>No.</th>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Phone</th>
+                            <th>Address</th>
+                            <th>Role ID</th>
+                            <th>Reason</th>
+                            <th>Resign Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                </table>
+            </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<script>
+    $(document).ready(function () {
+        loadRecords();
+    });
+
+    function loadRecords(){
+        var apiUrl = '@Url.Content("~/api/get_resigned_staff")';
+        $.ajax({
+            url: apiUrl,
+            type: 'GET',
+            success: function (response) {
+                console.log('resigned response', response); // debug log
+                let rows = "";
+                var list = response.records || [];
+                if(!list.length){
+                    // if no records, fetch debug info to console
+                    $.get('@Url.Content("~/api/resign_debug")', function(d){
+                        console.warn('resign_debug:', d);
+                    });
+                }
+                list.forEach(function (item, idx) {
+                    let rowNum = idx + 1;
+                    rows += `
+                        <tr>
+                            <td>${rowNum}</td>
+                            <td>${item.name}</td>
+                            <td>${item.email}</td>
+                            <td>${item.phone_no}</td>
+                            <td>${item.address}</td>
+                            <td>${item.role_id}</td>
+                            <td>${item.reason}</td>
+                            <td>${item.resign ? new Date(item.resign).toLocaleDateString() : ''}</td>
+                        </tr>`;
+                });
+                if(rows === "") {
+                    rows = '<tr><td colspan="8" class="text-center text-muted">No resign records found</td></tr>';
+                }
+                $("#resignTable tbody").html(rows);
+            },
+            error: function (response) {
+                console.log(response);
+            }
+        });
+    }
+</script>

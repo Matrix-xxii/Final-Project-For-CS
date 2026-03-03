@@ -1,0 +1,109 @@
+﻿@{
+    ViewData["Title"] = "StaffList";
+}
+
+
+<div class="content-header">
+    <div class="container-fluid">
+    </div>
+</div>
+
+<section class="content">
+    <div class="container-fluid">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title font-weight-bold">Staff List</h3>
+            </div>
+
+            <div class="card-body">
+                <table id="staffTable" class="table table-bordered table-striped">
+                    <thead>
+                        <tr>
+                            <th>No.</th>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Phone</th>
+                            <th>Address</th>
+                            <th>Role ID</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
+
+<script>
+    $(document).ready(function () {
+
+        $.ajax({
+            url: '/api/get_all_staffs',
+            type: 'GET',
+            success: function (response) {
+
+                let rows = "";
+                var list = response.staff || response.roles || [];
+                list.forEach(function (staff, idx) {
+                    let rowNumber = idx + 1;
+
+                    let badge = "";
+
+                    if (staff.status === "In Service") {
+                        badge = '<span class="badge badge-success">In Service</span>';
+                    } else {
+                        badge = '<span class="badge badge-danger">Resign</span>';
+                    }
+
+                    rows += `
+                        <tr>
+                            <td>${rowNumber}</td>
+                            <td>${staff.name}</td>
+                            <td>${staff.email}</td>
+                            <td>${staff.phone_no}</td>
+                            <td>${staff.address}</td>
+                            <td>${staff.role_id}</td>
+                            <td>${badge}</td>
+                            <td class="text-center">
+                                <div class="btn-group btn-group-sm" role="group">
+                                    <a class="btn btn-outline-primary" href="/Entry/Registration?id=${staff.id}" title="Edit">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <button class="btn btn-outline-danger" onclick="deleteStaff(${staff.id})" title="Delete">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>`;
+                });
+                // insert into table body
+                $("#staffTable tbody").html(rows);
+            },
+            error: function (response) {
+                console.log(response);
+            }
+        });
+
+    });
+
+    function deleteStaff(id){
+        if(!confirm('Delete this staff?')) return;
+        $.ajax({
+            type:'POST',
+            url:'/api/delete_staff',
+            data: JSON.stringify({ id: id }),
+            contentType:'application/json; charset=utf-8',
+            dataType:'json'
+        }).done(function(res){
+            if(res.message == 'Success'){
+                alert('Removed');
+                location.reload();
+            } else {
+                alert(res.message);
+            }
+        });
+    }
+</script>
