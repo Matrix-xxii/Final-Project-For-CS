@@ -1,0 +1,11 @@
+# Node
+node_modules/
+dist/
+build/
+
+# .NET
+bin/
+obj/
+
+# Visual Studio
+.vs/

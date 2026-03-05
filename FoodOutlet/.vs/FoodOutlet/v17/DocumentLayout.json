@@ -28,7 +28,7 @@
               "RelativeDocumentMoniker": "Views\\Entry\\Recipe.cshtml",
               "ToolTip": "D:\\MLM\\Final\\FoodOutlet\\Views\\Entry\\Recipe.cshtml",
               "RelativeToolTip": "Views\\Entry\\Recipe.cshtml",
-              "ViewState": "AgIAAMMAAAAAAAAAAAAAAM8AAABbAAAAAAAAAA==",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAoAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
               "WhenOpened": "2026-03-04T09:32:47.724Z",
               "EditorCaption": ""
@@ -43,8 +43,7 @@
               "RelativeToolTip": "Views\\Entry\\Role.cshtml",
               "ViewState": "AgIAAAgAAAAAAAAAAAAmwGIAAAAEAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
-              "WhenOpened": "2026-03-04T10:12:05.38Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-03-04T10:12:05.38Z"
             }
           ]
         }
