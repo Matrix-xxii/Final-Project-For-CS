@@ -26,6 +26,10 @@ build_property.EnableCodeStyleSeverity =
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcRW50cnlcQ2F0ZWdvcnkuY3NodG1s
 build_metadata.AdditionalFiles.CssScope = 
 
+[D:/MLM/Final/FoodOutlet/Views/Entry/Inventory.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcRW50cnlcSW52ZW50b3J5LmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
 [D:/MLM/Final/FoodOutlet/Views/Entry/Recipe.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcRW50cnlcUmVjaXBlLmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 

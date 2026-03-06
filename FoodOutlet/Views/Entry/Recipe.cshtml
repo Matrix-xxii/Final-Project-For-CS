@@ -1,4 +1,4 @@
-@model FoodOutlet.Models.Recipe
+﻿@model FoodOutlet.Models.Recipe
 @{
     bool isEdit = Model != null && Model.id > 0;
     ViewData["Title"] = "Recipe";
@@ -22,11 +22,6 @@
     .price-box span {
         background: #f8f9fa;
         font-weight: 600;
-    }
-
-    .search-card {
-        border-radius: 12px;
-        background: #ffffff;
     }
 
     .action-btn {
@@ -55,7 +50,7 @@
 
         <div class="row">
 
-            <!-- LEFT SIDE FORM -->
+            <!-- LEFT FORM -->
             <div class="col-md-7">
                 <div class="card section-card shadow-sm">
                     <div class="card-header">
@@ -69,11 +64,19 @@
                         <input type="hidden" id="hdnId" value="@(Model?.id ?? 0)" />
 
                         <div class="row mb-3">
+                            <div class="col-md-4 form-label-custom">Category</div>
+                            <div class="col-md-8">
+                                <select id="ddlCategory" class="form-control">
+                                    <option value="">-- Select Category --</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
                             <div class="col-md-4 form-label-custom">Recipe Name</div>
                             <div class="col-md-8">
                                 <input id="txtRecipeName"
                                        class="form-control"
-                                       value="@(Model?.name ?? "")"
+                                       value="@(Model?.recipe_name ?? "")"
                                        placeholder="Enter recipe name"
                                        @(isEdit ? "readonly" : "") />
                             </div>
@@ -103,144 +106,146 @@
                             </button>
                         </div>
 
+                        @if(isEdit){
+                        <button class="btn btn-primary ml-2" onclick="goToRegistrationStatus()">
+                            <i class="fas fa-arrow-left"></i> Back
+                        </button>
+                        }
+
                     </div>
                 </div>
             </div>
 
-            <!-- RIGHT SIDE SEARCH -->
-            <div class="col-md-5">
-                <div class="card search-card shadow-sm">
-                    <div class="card-header">
-                        <h4 class="card-title font-weight-bold">
-                            Search Recipe
-                        </h4>
-                    </div>
-
-                    <div class="card-body">
-                        <input id="recipeSearch"
-                               class="form-control mb-3"
-                               placeholder="Search recipe name..." />
-                        
-                        <button class="btn btn-primary btn-block" onclick="applySearch()">
-                            Search
-                        </button>
-
-                        <button class="btn btn-outline-secondary btn-block mt-2" onclick="clearSearch()">
-                            Clear Search
-                        </button>
-                    </div>
-                </div>
-            </div>
-
+            <div class="col-md-5"></div>
         </div>
 
-        <!-- TABLE SECTION -->
+        <!-- TABLE -->
         <div class="row mt-4">
             <div class="col-md-12">
                 <div class="card shadow-sm section-card">
                     <div class="card-header">
                         <h4 class="mb-0 font-weight-bold">Recipe List</h4>
                     </div>
-                        <div class="card-body p-0">
-                            <table class="table table-striped mb-0" id="catTable">
-                                <thead>
-                                    <tr>
-                                        <th style="width:13%;">No</th>
-                                        <th style="width:20%;">Name</th>
-                                        <th>Category</th>
-                                        <th>Price (MMK)</th>
-                                        <th class="text-center" style="width:200px;">Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="recipeBody">
-                                </tbody>
-                            </table>
-                        </div>
+
+                    <div class="card-body">
+                        <table class="table table-striped" id="catTable" style="width:100%">
+                            <thead>
+                                <tr>
+                                    <th style="width:8%;">No</th>
+                                    <th>Name</th>
+                                    <th>Category</th>
+                                    <th>Price (MMK)</th>
+                                    <th class="text-center" style="width:150px;">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+
                 </div>
             </div>
         </div>
 
     </div>
 </section>
-
 <script>
-
-    let allRecipes = [];
+    let recipeTable;
 
     $(document).ready(function () {
-        loadRecipes();
+        recipeTable = $('#catTable').DataTable({
+            pageLength: 10,
+            lengthChange: false,
+            searching: true,
+            ordering: true,
+            pagingType: "simple_numbers", // Shows 1,2,3 style pagination
+            responsive: true,
+            autoWidth: false,
+            columnDefs: [
+                {
+                    targets: 0,
+                    orderable: false,
+                    render: function (data, type, row, meta) {
+                        return meta.row + meta.settings._iDisplayStart + 1;
+                    }
+                },
+                {
+                    targets: 4,
+                    orderable: false
+                }
+            ]
+
+        });
+
+        loadCategories(@(Model?.category_id ?? 0));
+        loadRecipes();  
     });
+
+    function loadCategories(selectedId) {
+        $.get('/api/get_all_categories', function (data) {
+            let list = data.categories || [];
+            let $ddl = $('#ddlCategory');
+            $ddl.empty();
+            $ddl.append('<option value="">-- Select Category --</option>');
+            if (list.length === 0) {
+                $ddl.append('<option value="">No categories found</option>');
+            } else {
+                list.forEach(function (cat) {
+                    $ddl.append(`<option value="${cat.id}"${selectedId == cat.id ? ' selected' : ''}>${cat.category_name}</option>`);
+                });
+            }
+        });
+    }
 
     function loadRecipes() {
         $.get('/api/get_all_recipes')
         .done(function (data) {
+            console.log('API data:', data); // Add this line
 
-            // SUPPORT BOTH API STRUCTURES
-            allRecipes = data.recipes ? data.recipes : data;
+            let list = data.recipes ? data.recipes : data;
 
-            renderTable(allRecipes);
-        })
-        .fail(function () {
-            alert("Cannot load recipes");
-        });
-    }
+            recipeTable.clear();
 
-    function renderTable(list) {
+            if (!list || list.length === 0) {
+                recipeTable.draw();
+                return;
+            }
 
-        let html = '';
+            list.forEach(function (r) {
 
-        if (!list || list.length === 0) {
-            html = `<tr><td colspan="5" class="text-center p-4">No recipes found</td></tr>`;
-        } else {
-
-            list.forEach((r, i) => {
-
-                html += `
-                <tr>
-                    <td>${i + 1}</td>
-                    <td>${r.name ?? ''}</td>
-                    <td>${r.category_name ?? ''}</td>
-                    <td>${parseFloat(r.price).toLocaleString()}</td>
-                    <td class="text-center">
+                recipeTable.row.add([
+                    null,
+                    r.recipe_name ?? '',
+                    r.category_name ?? '', // This will now show the category name
+                    parseFloat(r.price).toLocaleString(),
+                    `
+                    <div class="text-center">
                         <button class="action-btn btn-edit" onclick="editRecipe(${r.id})">
-                            <i class="fas fa-pen"></i>
+                            <i class="fas fa-edit"></i>
                         </button>
                         <button class="action-btn btn-delete" onclick="deleteRecipe(${r.id})">
                             <i class="fas fa-trash"></i>
                         </button>
-                    </td>
-                </tr>
-                `;
+                    </div>
+                    `
+                ]);
             });
-        }
 
-        $('#recipeBody').html(html);
+            recipeTable.draw();
+        });
     }
 
-    function applySearch() {
-        let keyword = $('#recipeSearch').val().toLowerCase();
-
-        let filtered = allRecipes.filter(x =>
-            (x.name ?? '').toLowerCase().includes(keyword)
-        );
-
-        renderTable(filtered);
+        function goToRegistrationStatus() {
+        window.location.href = "/Entry/Recipe";
     }
-
-    function clearSearch() {
-        $('#recipeSearch').val('');
-        renderTable(allRecipes);
-    }
-
     function saveRecipe() {
+    let obj = {
+        id: parseInt($('#hdnId').val()),
+        recipe_name: $('#txtRecipeName').val(),
+        category_id: parseInt($('#ddlCategory').val()) || 0,
+        price: parseFloat($('#txtPrice').val())
+    };
 
-        let obj = {
-            id: parseInt($('#hdnId').val()),
-            name: $('#txtRecipeName').val(),
-            price: parseFloat($('#txtPrice').val())
-        };
-
-        if (!obj.name) {
+        if (!obj.recipe_name) {
             alert("Recipe name required");
             return;
         }
@@ -259,7 +264,6 @@
         })
         .done(function (res) {
             if (res.message === "Success") {
-                alert("Saved successfully");
                 loadRecipes();
                 clearForm();
             } else {
@@ -296,6 +300,7 @@
         $('#hdnId').val(0);
         $('#txtRecipeName').val('');
         $('#txtPrice').val('');
+        $('#ddlCategory').val('');
     }
 
 </script>

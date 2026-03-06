@@ -96,15 +96,18 @@
                                         <div class="col-md-4"></div>
                                         <div class="col-md-8">
                                             @if (!isEdit)
-                                            {
-                                                <button type="button" class="btn btn-success float-right" onclick="saveStaff()">
-                                                    Create
-                                                </button>
-                                            }
-                                            else
-                                            {
-                                                <span class="text-muted">(Name is read-only)</span>
-                                            }
+                                        {
+                                            <button type="button" class="btn btn-success float-right" onclick="saveStaff()">
+                                                Create
+                                            </button>
+                                        }
+                                        else
+                                        {
+                                            <button type="button" class="btn btn-primary float-right" onclick="saveStaff()">
+                                                Update
+                                            </button>
+                                            <span class="text-muted ml-2">(Name is read-only)</span>
+                                        }
                                         </div>
                                     </div>
 
@@ -182,7 +185,7 @@
             phone_no: $("#txtPhone").val(),
             address: $("#txtAddress").val(),
             role_id: parseInt($("#cboStaffRole").val())
-        };
+};
         console.log(obj);
 
         $.ajax({
@@ -191,7 +194,6 @@
             data: JSON.stringify(obj),
             contentType: "application/json; charset=utf-8",
             dataType: "json"
-
         }).done(function(res){
 
             if(res.message == "Success"){

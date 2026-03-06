@@ -16,8 +16,17 @@
             </div>
 
             <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <div>
+                        <span id="staffCount" class="font-weight-bold"></span>
+                    </div>
+                    <div>
+                        <input type="text" id="staffFilter" class="form-control" placeholder="Filter staff..." style="width: 200px; display: inline-block;" />
+                    </div>
+                </div>
+
                 <table id="staffTable" class="table table-bordered table-striped">
-                    <thead>
+                    <thead> 
                         <tr>
                             <th>No.</th>
                             <th>Name</th>
@@ -38,54 +47,9 @@
 </section>
 
 <script>
-    $(document).ready(function () {
-
-        $.ajax({
-            url: '/api/get_all_staffs',
-            type: 'GET',
-            success: function (response) {
-
-                let rows = "";
-                var list = response.staff || response.roles || [];
-                list.forEach(function (staff, idx) {
-                    let rowNumber = idx + 1;
-
-                    let badge = "";
-
-                    if (staff.status === "In Service") {
-                        badge = '<span class="badge badge-success">In Service</span>';
-                    } else {
-                        badge = '<span class="badge badge-danger">Resign</span>';
-                    }
-
-                    rows += `
-                        <tr>
-                            <td>${rowNumber}</td>
-                            <td>${staff.name}</td>
-                            <td>${staff.email}</td>
-                            <td>${staff.phone_no}</td>
-                            <td>${staff.address}</td>
-                            <td>${staff.role_id}</td>
-                            <td>${badge}</td>
-                            <td class="text-center">
-                                <button class="btn btn-warning btn-sm" onclick="window.location='/Entry/Registration?id=${staff.id}'" title="Edit">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                                <button class="btn btn-danger btn-sm" onclick="deleteStaff(${staff.id})" title="Delete">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </td>
-                        </tr>`;
-                });
-                // insert into table body
-                $("#staffTable tbody").html(rows);
-            },
-            error: function (response) {
-                console.log(response);
-            }
-        });
-
-    });
+    function editStaff(id) {
+        window.location = '/Entry/Registration?id=' + id;
+    }
 
     function deleteStaff(id){
         if(!confirm('Delete this staff?')) return;
@@ -104,4 +68,54 @@
             }
         });
     }
+
+    function updateStaffCount() {
+        var count = $("#staffTable tbody tr:visible").length;
+        $("#staffCount").text("Total Staff: " + count);
+    }
+
+    $(document).ready(function () {
+        $.ajax({
+            url: '/api/get_all_staffs',
+            type: 'GET',
+            success: function (response) {
+                let rows = "";
+                var list = response.staff || [];
+                list.forEach(function (staff, idx) {
+                    let rowNumber = idx + 1;
+                    let badge = staff.status === "In Service"
+                        ? '<span class="badge badge-success">In Service</span>'
+                        : '<span class="badge badge-danger">Resign</span>';
+                    rows += `
+                        <tr>
+                            <td>${rowNumber}</td>
+                            <td>${staff.name}</td>
+                            <td>${staff.email}</td>
+                            <td>${staff.phone_no}</td>
+                            <td>${staff.address}</td>
+                            <td>${staff.role_id}</td>
+                            <td>${badge}</td>
+                            <td>
+                                <button class="btn btn-warning btn-sm" onclick="editStaff(${staff.id})">
+                                    <i class="fas fa-edit"></i>
+                                </button>           
+                                <button class="btn btn-danger btn-sm" onclick="deleteStaff(${staff.id})">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                });
+                $("#staffTable tbody").html(rows);
+                updateStaffCount();
+                $("#staffFilter").on("keyup", function () {
+                    var value = $(this).val().toLowerCase();
+                    $("#staffTable tbody tr").filter(function () {
+                        $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1)
+                    });
+                    updateStaffCount();
+                });
+            }
+        });
+    });
 </script>

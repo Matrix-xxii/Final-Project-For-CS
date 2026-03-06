@@ -15,7 +15,10 @@ namespace FoodOutlet.Controllers
         }
 
         #region view
-
+        public IActionResult Inventory()
+        {
+            return View();
+        }
         public IActionResult Role()
         {
             return View();
@@ -52,10 +55,9 @@ namespace FoodOutlet.Controllers
         {
             if (id.HasValue)
             {
-                // Load recipe by ID for editing
-                var recipes = _staff.GetAllRecipes();
-                var recipe = recipes.FirstOrDefault(r => r.id == id.Value);
-                ViewData["Title"] = recipe?.name ?? "Recipe";
+                // Use a method that returns a Recipe model, not an anonymous type!
+                var recipe = _staff.GetRecipeById(id.Value);
+                ViewData["Title"] = recipe?.recipe_name ?? "Recipe";
                 return View(recipe);
             }
             ViewData["Title"] = "Recipe";
@@ -69,11 +71,7 @@ namespace FoodOutlet.Controllers
         [HttpPost("api/set_staff")]
         public Models.Message SetStaff([FromBody] Models.Staff staff)
         {
-            // if id present update, otherwise insert
-            if (staff.id > 0)
-                return _staff.UpdateStaff(staff);
-            else
-                return _staff.SetStaff(staff);
+            return _staff.SetStaff(staff);
         }
 
         [HttpPost("api/delete_staff")]
@@ -112,11 +110,7 @@ namespace FoodOutlet.Controllers
         [HttpGet("api/get_all_staffs")]
         public Dictionary<string, dynamic> GetAllStaffs()
         {
-            Dictionary<string, dynamic> result = new Dictionary<string, dynamic>();
-
-            result.Add("staff", _staff.GetAllStaffs());
-
-            return result;
+            return new Dictionary<string, dynamic> { { "staff", _staff.GetAllStaffs() } };      
         }
 
         [HttpGet("api/get_all_categories")]
@@ -189,6 +183,10 @@ namespace FoodOutlet.Controllers
             int id = payload.id;
             return _staff.DeleteRole(id);
         }
+
+        #endregion
+
+        #region Inventory
 
         #endregion
 

@@ -60,7 +60,16 @@ namespace FoodOutlet.AppCode
                     conn.Open();
                     if (staf.id > 0)
                     {
-                        using (MySqlCommand cmd = new MySqlCommand("UPDATE registrations SET name=@name,email=@email,birth_of_date=@birth_of_date,password_hash=@password_hash,phone_no=@phone_no,address=@address,role_id=@role_id WHERE id=@id", conn))
+                        using (MySqlCommand cmd = new MySqlCommand(
+                            @"UPDATE registrations SET 
+                                registration_name=@name,
+                                email=@email,
+                                birth_of_date=@birth_of_date,
+                                password_hash=@password_hash,
+                                phone_no=@phone_no,
+                                address=@address,
+                                role_id=@role_id
+                              WHERE id=@id", conn))
                         {
                             cmd.Parameters.AddWithValue("@id", staf.id);
                             cmd.Parameters.AddWithValue("@name", staf.name);
@@ -71,12 +80,16 @@ namespace FoodOutlet.AppCode
                             cmd.Parameters.AddWithValue("@address", staf.address);
                             cmd.Parameters.AddWithValue("@role_id", staf.role_id);
                             cmd.ExecuteNonQuery();
-                            msg.message = "Success";
+                            msg.message = "Updated";
                         }
                     }
                     else
                     {
-                        using (MySqlCommand cmd = new MySqlCommand("INSERT INTO registrations (name,email,birth_of_date,password_hash,phone_no,address,role_id) VALUES (@name,@email,@birth_of_date,@password_hash,@phone_no,@address,@role_id)", conn))
+                        using (MySqlCommand cmd = new MySqlCommand(
+                            @"INSERT INTO registrations 
+                                (registration_name, email, birth_of_date, password_hash, phone_no, address, role_id) 
+                              VALUES 
+                                (@name, @email, @birth_of_date, @password_hash, @phone_no, @address, @role_id)", conn))
                         {
                             cmd.Parameters.AddWithValue("@name", staf.name);
                             cmd.Parameters.AddWithValue("@email", staf.email);
@@ -110,58 +123,35 @@ namespace FoodOutlet.AppCode
         public List<Models.Staff> GetAllStaffs()
         {
             List<Models.Staff> staffList = new List<Models.Staff>();
-
             using (MySqlConnection conn = _connectionFactory.CreateConnection())
             {
                 conn.Open();
-
-                // determine which columns exist in registrations table so we only query them
-                var cols = GetRegistrationColumns();
-                bool hasEmail = cols.Contains("email", StringComparer.OrdinalIgnoreCase);
-                bool hasPhone = cols.Contains("phone_no", StringComparer.OrdinalIgnoreCase);
-                bool hasAddress = cols.Contains("address", StringComparer.OrdinalIgnoreCase);
-
-                // figure out how resigns table refers to registration key
-                var rcols = GetResignColumns();
-                string keyCol;
-                if (rcols.Contains("registration_id", StringComparer.OrdinalIgnoreCase))
-                    keyCol = "registration_id";
-                else if (rcols.Contains("resigned", StringComparer.OrdinalIgnoreCase))
-                    keyCol = "resigned"; // fallback if only this name exists
-                else
-                    keyCol = "registration_id"; // default hope for the best
-
-                var selectCols = new List<string> { "r.id", "r.registration_name", "r.birth_of_date", "r.role_id" };
-                if (hasEmail) selectCols.Add("r.email");
-                if (hasPhone) selectCols.Add("r.phone_no");
-                if (hasAddress) selectCols.Add("r.address");
-                selectCols.Add($"CASE WHEN rs.{keyCol} IS NULL THEN 'In Service' ELSE 'Resign' END AS status");
-
-                string table = GetResignTableName();
-                string query = $"SELECT {string.Join(",", selectCols)} FROM registrations r LEFT JOIN {table} rs ON r.id = rs.{keyCol} ORDER BY r.id";
-
+                string table = "registrations";
+                string resignTable = GetResignTableName();
+                string query = $@"
+                    SELECT r.id, r.registration_name AS name, r.email, r.phone_no, r.address, r.role_id,
+                           CASE WHEN rs.registration_id IS NULL THEN 'In Service' ELSE 'Resign' END AS status
+                    FROM {table} r
+                    LEFT JOIN {resignTable} rs ON r.id = rs.registration_id
+                    ORDER BY r.id";
                 using (MySqlCommand cmd = new MySqlCommand(query, conn))
                 using (MySqlDataReader rst = cmd.ExecuteReader())
                 {
                     while (rst.Read())
                     {
-                        Models.Staff staff = new Models.Staff
+                        staffList.Add(new Models.Staff
                         {
                             id = rst["id"] == DBNull.Value ? 0 : Convert.ToInt32(rst["id"]),
-                            name = rst["registration_name"]?.ToString() ?? "",
-                            email = hasEmail && HasColumn(rst, "email") ? rst["email"]?.ToString() ?? "" : "",
-                            birth_of_date = rst["birth_of_date"] == DBNull.Value ? null : Convert.ToDateTime(rst["birth_of_date"]),
-                            phone_no = hasPhone && HasColumn(rst, "phone_no") ? rst["phone_no"]?.ToString() ?? "" : "",
-                            address = hasAddress && HasColumn(rst, "address") ? rst["address"]?.ToString() ?? "" : "",
+                            name = rst["name"]?.ToString() ?? "",
+                            email = rst["email"]?.ToString() ?? "",
+                            phone_no = rst["phone_no"]?.ToString() ?? "",
+                            address = rst["address"]?.ToString() ?? "",
                             role_id = rst["role_id"] == DBNull.Value ? 0 : Convert.ToInt32(rst["role_id"]),
                             status = rst["status"]?.ToString() ?? ""
-                        };
-
-                        staffList.Add(staff);
+                        });
                     }
                 }
             }
-
             return staffList;
         }
 
@@ -483,29 +473,22 @@ namespace FoodOutlet.AppCode
         public List<Models.Category> GetAllCategories()
         {
             var list = new List<Models.Category>();
-            try
+            using (var conn = _connectionFactory.CreateConnection())
             {
-                using (var conn = _connectionFactory.CreateConnection())
+                conn.Open();
+                using (var cmd = new MySqlCommand("SELECT id, category_name FROM categories ORDER BY id", conn))
+                using (var rdr = cmd.ExecuteReader())
                 {
-                    conn.Open();
-                    using (var cmd = new MySqlCommand("SELECT id, category_name FROM categories ORDER BY id", conn))
-                    using (var rdr = cmd.ExecuteReader())
+                    while (rdr.Read())
                     {
-                        while (rdr.Read())
-                        {
-                            list.Add(new Models.Category {
-                                id = rdr["id"] == DBNull.Value ? 0 : Convert.ToInt32(rdr["id"]),
-                                category_name = rdr["category_name"]?.ToString() ?? ""
-                            });
-                        }
+                        list.Add(new Models.Category {
+                            id = rdr["id"] == DBNull.Value ? 0 : Convert.ToInt32(rdr["id"]),
+                            category_name = rdr["category_name"]?.ToString() ?? ""
+                        });
                     }
                 }
             }
-            catch (MySql.Data.MySqlClient.MySqlException ex)
-            {
-                Console.WriteLine($"Error loading categories: {ex.Message}");
-                // return empty list if database not available
-            }
+            
             return list;
         }
 
@@ -568,88 +551,35 @@ namespace FoodOutlet.AppCode
             return msg;
         }
 
-        // recipe methods (simplified - only name and price)
-        public List<Models.Recipe> GetAllRecipes()
+        public List<dynamic> GetAllRecipes()
         {
-            var list = new List<Models.Recipe>();
-            try
+            var list = new List<dynamic>();
+            using (var conn = _connectionFactory.CreateConnection())
             {
-                using (var conn = _connectionFactory.CreateConnection())
+                conn.Open();
+                string table = GetRecipeTableName();
+                string sql = $@"
+            SELECT r.id, r.recipe_name, r.category_id, r.price, c.category_name
+            FROM {table} r
+            LEFT JOIN categories c ON r.category_id = c.id
+            ORDER BY r.id";
+                using (var cmd = new MySqlCommand(sql, conn))
+                using (var rdr = cmd.ExecuteReader())
                 {
-                    conn.Open();
-                    string table = GetRecipeTableName();
-
-                    string sql = $@"
-                        SELECT r.id,
-                               r.recipe_name AS name,
-                               r.price
-                        FROM {table} r
-                        ORDER BY r.id";
-
-                    using (var cmd = new MySqlCommand(sql, conn))
-                    using (var rdr = cmd.ExecuteReader())
+                    while (rdr.Read())
                     {
-                        while (rdr.Read())
-                        {
-                            list.Add(new Models.Recipe
-                            {
-                                id = rdr["id"] == DBNull.Value ? 0 : Convert.ToInt32(rdr["id"]),
-                                name = rdr["name"]?.ToString() ?? "",
-                                price = rdr["price"] == DBNull.Value ? 0 : Convert.ToDecimal(rdr["price"]),
-                                qty = 0,
-                                qty_status = ""
-                            });
-                        }
+                        list.Add(new {
+                            id = rdr["id"] == DBNull.Value ? 0 : Convert.ToInt32(rdr["id"]),
+                            recipe_name = rdr["recipe_name"]?.ToString() ?? "",
+                            category_id = rdr["category_id"] == DBNull.Value ? 0 : Convert.ToInt32(rdr["category_id"]),
+                            price = rdr["price"] == DBNull.Value ? 0 : Convert.ToDecimal(rdr["price"]),
+                            category_name = rdr["category_name"]?.ToString() ?? ""
+                        });
                     }
                 }
-            }
-            catch (MySql.Data.MySqlClient.MySqlException ex)
-            {
-                Console.WriteLine($"Error loading recipes: {ex.Message}");
             }
             return list;
         }
-
-        public Message SetRecipe(Models.Recipe r)
-        {
-            Message msg = new Message();
-            try
-            {
-                using (var conn = _connectionFactory.CreateConnection())
-                {
-                    conn.Open();
-                    string table = GetRecipeTableName();
-
-                    if (r.id > 0)
-                    {
-                        using (var cmd = new MySqlCommand($"UPDATE {table} SET recipe_name=@name, price=@price WHERE id=@id", conn))
-                        {
-                            cmd.Parameters.AddWithValue("@id", r.id);
-                            cmd.Parameters.AddWithValue("@name", r.name ?? "");
-                            cmd.Parameters.AddWithValue("@price", r.price);
-                            cmd.ExecuteNonQuery();
-                            msg.message = "Success";
-                        }
-                    }
-                    else
-                    {
-                        using (var cmd = new MySqlCommand($"INSERT INTO {table} (recipe_name, price, created_at) VALUES (@name, @price, NOW())", conn))
-                        {
-                            cmd.Parameters.AddWithValue("@name", r.name ?? "");
-                            cmd.Parameters.AddWithValue("@price", r.price);
-                            cmd.ExecuteNonQuery();
-                            msg.message = "Success";
-                        }
-                    }
-                }
-            }
-            catch (Exception e)
-            {
-                msg.message = "Error: " + e.Message;
-            }
-            return msg;
-        }
-
         public Message DeleteRecipe(int id)
         {
             Message msg = new Message();
@@ -734,5 +664,73 @@ namespace FoodOutlet.AppCode
             }
         }
 
+        public Message SetRecipe(Recipe r)
+        {
+            Message msg = new Message();
+            try
+            {
+                using (var conn = _connectionFactory.CreateConnection())
+                {
+                    conn.Open();
+                    string table = GetRecipeTableName();
+                    if (r.id > 0)
+                    {
+                        using (var cmd = new MySqlCommand($"UPDATE {table} SET recipe_name=@name, category_id=@catid, price=@price WHERE id=@id", conn))
+                        {
+                            cmd.Parameters.AddWithValue("@id", r.id);
+                            cmd.Parameters.AddWithValue("@name", r.recipe_name ?? "");
+                            cmd.Parameters.AddWithValue("@catid", r.category_id);
+                            cmd.Parameters.AddWithValue("@price", r.price);
+                            cmd.ExecuteNonQuery();
+                            msg.message = "Success";
+                        }
+                    }
+                    else
+                    {
+                        using (var cmd = new MySqlCommand($"INSERT INTO {table} (recipe_name, category_id, price, created_at) VALUES (@name, @catid, @price, NOW())", conn))
+                        {
+                            cmd.Parameters.AddWithValue("@name", r.recipe_name ?? "");
+                            cmd.Parameters.AddWithValue("@catid", r.category_id);
+                            cmd.Parameters.AddWithValue("@price", r.price);
+                            cmd.ExecuteNonQuery();
+                            msg.message = "Success";
+                        }
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                msg.message = "Error: " + e.Message;
+            }
+            return msg;
+        }
+
+        public Recipe GetRecipeById(int id)
+        {
+            using (var conn = _connectionFactory.CreateConnection())
+            {
+                conn.Open();
+                string table = GetRecipeTableName();
+                string sql = $"SELECT id, recipe_name, category_id, price FROM {table} WHERE id=@id";
+                using (var cmd = new MySqlCommand(sql, conn))
+                {
+                    cmd.Parameters.AddWithValue("@id", id);
+                    using (var rdr = cmd.ExecuteReader())
+                    {
+                        if (rdr.Read())
+                        {
+                            return new Recipe
+                            {
+                                id = rdr["id"] == DBNull.Value ? 0 : Convert.ToInt32(rdr["id"]),
+                                recipe_name = rdr["recipe_name"]?.ToString() ?? "",
+                                category_id = rdr["category_id"] == DBNull.Value ? 0 : Convert.ToInt32(rdr["category_id"]),
+                                price = rdr["price"] == DBNull.Value ? 0 : Convert.ToDecimal(rdr["price"])
+                            };
+                        }
+                    }
+                }
+            }
+            return null;
+        }
     }
 }

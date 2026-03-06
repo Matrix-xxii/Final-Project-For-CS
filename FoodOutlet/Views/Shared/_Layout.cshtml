@@ -12,8 +12,10 @@
     <link rel="stylesheet" href="~/plugins/fontawesome-free/css/all.min.css">
 
     <!-- Ionicons -->
-    <link rel="stylesheet" href="https://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css">
+    <link rel="stylesheet" href="~/plugins/ionicons/css/ionicons.min.css">
 
+    <!-- Data Table -->
+    <link rel="stylesheet" href="~/plugins/datatables-bs4/css/dataTables.bootstrap4.min.css" />
     <!-- iCheck -->
     <link rel="stylesheet" href="~/plugins/icheck-bootstrap/icheck-bootstrap.min.css">
 
@@ -31,22 +33,10 @@
 
     <link rel="stylesheet" href="~/">
 
-
-    <!-- ===== JS ===== -->
-    <!-- 1. jQuery FIRST -->
     <script src="~/plugins/jquery/jquery.min.js"></script>
-
-    <!-- 2. jQuery UI -->
-    <script src="~/plugins/jquery-ui/jquery-ui.min.js"></script>
-
-    <script>
-        $.widget.bridge('uibutton', $.ui.button)
-    </script>
-
-    <!-- 3. Bootstrap -->
     <script src="~/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
-
-    <!-- 4. Plugins -->
+    <script src="~/plugins/datatables/jquery.dataTables.min.js"></script>
+    <script src="~/plugins/datatables-bs4/js/dataTables.bootstrap4.min.js"></script>
     <script src="~/plugins/moment/moment.min.js"></script>
     <script src="~/plugins/daterangepicker/daterangepicker.js"></script>
 
@@ -74,9 +64,6 @@
                 </li>
                 <li class="nav-item d-none d-sm-inline-block">
                     <a href="index3.html" class="nav-link">Home</a>
-                </li>
-                <li class="nav-item d-none d-sm-inline-block">
-                    <a href="#" class="nav-link">Contact</a>
                 </li>
             </ul>
             <!-- Right navbar links -->
@@ -171,9 +158,9 @@
                         <i class="fas fa-expand-arrows-alt"></i>
                     </a>
                 </li>
-                <li class="nav-item">
-                    <a class="nav-link" data-widget="control-sidebar" data-controlsidebar-slide="true" href="#" role="button">
-                        <i class="fas fa-th-large"></i>
+                <li class="nav-item d-none d-sm-inline-block">
+                    <a class="nav-link" data-widget="Log Out" href="#" role="button">
+                        <i class="fas fa-sign-out-alt"></i>
                     </a>
                 </li>
             </ul>
@@ -254,6 +241,12 @@
                                         <p>Recipes</p>
                                     </a>
                                 </li>
+                                <li class="nav-item">
+                                    <a asp-controller="Entry" asp-action="Inventory" class="nav-link nav-link-treeview">
+                                    <i class="fas fa-utensils"></i>
+                                    <p>Inventory</p>
+                                </a>
+                                </li>
                             </ul>
                         </li>
                         
@@ -276,6 +269,15 @@
                                     </a>
                                 </li>
                             </ul>
+                        </li>
+
+                        <li class="nav-item">
+                            <a href="pages/kanban.html" class="nav-link">
+                                <i class="nav-icon fas fa-columns"></i>
+                                <p>
+                                    Stock Control
+                                </p>
+                            </a>
                         </li>
                     </ul>
                 </nav>
@@ -305,6 +307,7 @@
    
 </body>
 </html>
+
 <script>
 
         $(function () {
