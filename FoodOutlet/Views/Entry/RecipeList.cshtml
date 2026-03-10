@@ -1,0 +1,109 @@
+﻿@{
+    ViewData["Title"] = "Recipe List";
+}
+
+<style>
+    .img-thumb { max-width:80px; max-height:60px; display:block; }
+    .action-btn { width:36px;height:36px;border-radius:6px;margin:0 3px;border:none; }
+</style>
+
+<div class="content-header">
+    <div class="container-fluid"></div>
+</div>
+
+<section class="content">
+    <div class="container-fluid">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h3 class="card-title font-weight-bold">Recipe List</h3>
+            </div>
+
+            <div class="card-body">
+                <table class="table table-striped" id="recipeTable" style="width:100%">
+                    <thead>
+                        <tr>
+                            <th style="width:6%;">No</th>
+                            <th style="width:10%;">Image</th>
+                            <th>Name</th>
+                            <th>Category</th>
+                            <th>Price (MMK)</th>
+                            <th>Description</th>
+                            <th class="text-center" style="width:150px;">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
+
+@section Scripts {
+<script>
+    let recipeTable;
+
+    $(document).ready(function () {
+        recipeTable = $('#recipeTable').DataTable({
+            pageLength: 10,
+            lengthChange: false,
+            searching: true,
+            ordering: true,
+            pagingType: "simple_numbers",
+            responsive: true,
+            autoWidth: false,
+            columnDefs: [
+                { targets: 0, orderable: false },
+                { targets: 6, orderable: false }
+            ]
+        });
+
+        loadRecipes();
+    });
+
+    function loadRecipes() {
+        $.get('/api/get_all_recipes')
+            .done(function (data) {
+                const list = data.recipes || [];
+                recipeTable.clear();
+                list.forEach(function (r, idx) {
+                    recipeTable.row.add([
+                        idx + 1,
+                        r.recipe_img ? `<img src="${r.recipe_img}" class="img-thumb" alt="img" />` : '',
+                        r.recipe_name ?? '',
+                        r.category_name ?? '',
+                        parseFloat(r.price).toLocaleString(),
+                        r.description ?? '',
+                        `<div class="text-center">
+                            <button class="action-btn btn-edit btn btn-warning btn-sm" title="Edit" onclick="goEdit(${r.id})"><i class="fas fa-edit"></i></button>
+                            <button class="action-btn btn-delete btn btn-danger btn-sm" title="Delete" onclick="deleteRecipe(${r.id})"><i class="fas fa-trash"></i></button>
+                         </div>`
+                    ]);
+                });
+                recipeTable.draw();
+            })
+            .fail(function () {
+                alert('Failed to load recipes');
+            });
+    }
+
+    function goEdit(id) {
+        window.location = '/Entry/Recipe?id=' + id;
+    }
+
+    function deleteRecipe(id) {
+        if (!confirm('Delete this recipe?')) return;
+        $.ajax({
+            type: 'POST',
+            url: '/api/delete_recipe',
+            data: JSON.stringify({ id: id }),
+            contentType: 'application/json'
+        })
+        .done(function (res) {
+            if (res.message === 'Success') loadRecipes(); else alert(res.message);
+        })
+        .fail(function () {
+            alert('Delete failed');
+        });
+    }
+</script>
+}

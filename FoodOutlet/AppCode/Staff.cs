@@ -60,16 +60,7 @@ namespace FoodOutlet.AppCode
                     conn.Open();
                     if (staf.id > 0)
                     {
-                        using (MySqlCommand cmd = new MySqlCommand(
-                            @"UPDATE registrations SET 
-                                registration_name=@name,
-                                email=@email,
-                                birth_of_date=@birth_of_date,
-                                password_hash=@password_hash,
-                                phone_no=@phone_no,
-                                address=@address,
-                                role_id=@role_id
-                              WHERE id=@id", conn))
+                        using (MySqlCommand cmd = new MySqlCommand("UPDATE registrations SET registration_name=@name,email=@email,birth_of_date=@birth_of_date,password_hash=@password_hash,phone_no=@phone_no,address=@address,role_id=@role_id WHERE id=@id", conn))
                         {
                             cmd.Parameters.AddWithValue("@id", staf.id);
                             cmd.Parameters.AddWithValue("@name", staf.name);
@@ -85,11 +76,7 @@ namespace FoodOutlet.AppCode
                     }
                     else
                     {
-                        using (MySqlCommand cmd = new MySqlCommand(
-                            @"INSERT INTO registrations 
-                                (registration_name, email, birth_of_date, password_hash, phone_no, address, role_id) 
-                              VALUES 
-                                (@name, @email, @birth_of_date, @password_hash, @phone_no, @address, @role_id)", conn))
+                        using (MySqlCommand cmd = new MySqlCommand("INSERT INTO registrations (registration_name,email,birth_of_date,password_hash,phone_no,address,role_id) VALUES (@name,@email,@birth_of_date,@password_hash,@phone_no,@address,@role_id)", conn))
                         {
                             cmd.Parameters.AddWithValue("@name", staf.name);
                             cmd.Parameters.AddWithValue("@email", staf.email);
@@ -431,7 +418,7 @@ namespace FoodOutlet.AppCode
                 using (MySqlConnection conn = _connectionFactory.CreateConnection())
                 {
                     conn.Open();
-                    using (MySqlCommand cmd = new MySqlCommand("INSERT INTO roles (role_name) VALUES (@role_name)", conn))
+                    using (var cmd = new MySqlCommand("INSERT INTO roles (role_name) VALUES (@role_name)", conn))
                     {
                         cmd.Parameters.AddWithValue("@role_name", role.role_name);
                         cmd.ExecuteNonQuery();
@@ -454,7 +441,7 @@ namespace FoodOutlet.AppCode
                 using (MySqlConnection conn = _connectionFactory.CreateConnection())
                 {
                     conn.Open();
-                    using (MySqlCommand cmd = new MySqlCommand("DELETE FROM roles WHERE id = @id", conn))
+                    using (var cmd = new MySqlCommand("DELETE FROM roles WHERE id = @id", conn))
                     {
                         cmd.Parameters.AddWithValue("@id", id);
                         cmd.ExecuteNonQuery();
@@ -559,7 +546,7 @@ namespace FoodOutlet.AppCode
                 conn.Open();
                 string table = GetRecipeTableName();
                 string sql = $@"
-            SELECT r.id, r.recipe_name, r.category_id, r.price, c.category_name
+            SELECT r.id, r.recipe_name, r.category_id, r.recipe_img, r.description, r.price, c.category_name
             FROM {table} r
             LEFT JOIN categories c ON r.category_id = c.id
             ORDER BY r.id";
@@ -572,6 +559,8 @@ namespace FoodOutlet.AppCode
                             id = rdr["id"] == DBNull.Value ? 0 : Convert.ToInt32(rdr["id"]),
                             recipe_name = rdr["recipe_name"]?.ToString() ?? "",
                             category_id = rdr["category_id"] == DBNull.Value ? 0 : Convert.ToInt32(rdr["category_id"]),
+                            recipe_img = rdr["recipe_img"]?.ToString() ?? "",
+                            description = rdr["description"]?.ToString() ?? "",
                             price = rdr["price"] == DBNull.Value ? 0 : Convert.ToDecimal(rdr["price"]),
                             category_name = rdr["category_name"]?.ToString() ?? ""
                         });
@@ -675,11 +664,13 @@ namespace FoodOutlet.AppCode
                     string table = GetRecipeTableName();
                     if (r.id > 0)
                     {
-                        using (var cmd = new MySqlCommand($"UPDATE {table} SET recipe_name=@name, category_id=@catid, price=@price WHERE id=@id", conn))
+                        using (var cmd = new MySqlCommand($"UPDATE {table} SET recipe_name=@name, category_id=@catid, recipe_img=@img, description=@desc, price=@price WHERE id=@id", conn))
                         {
                             cmd.Parameters.AddWithValue("@id", r.id);
                             cmd.Parameters.AddWithValue("@name", r.recipe_name ?? "");
                             cmd.Parameters.AddWithValue("@catid", r.category_id);
+                            cmd.Parameters.AddWithValue("@img", r.recipe_img ?? "");
+                            cmd.Parameters.AddWithValue("@desc", r.description ?? "");
                             cmd.Parameters.AddWithValue("@price", r.price);
                             cmd.ExecuteNonQuery();
                             msg.message = "Success";
@@ -687,10 +678,12 @@ namespace FoodOutlet.AppCode
                     }
                     else
                     {
-                        using (var cmd = new MySqlCommand($"INSERT INTO {table} (recipe_name, category_id, price, created_at) VALUES (@name, @catid, @price, NOW())", conn))
+                        using (var cmd = new MySqlCommand($"INSERT INTO {table} (recipe_name, category_id, recipe_img, description, price, created_at) VALUES (@name, @catid, @img, @desc, @price, NOW())", conn))
                         {
                             cmd.Parameters.AddWithValue("@name", r.recipe_name ?? "");
                             cmd.Parameters.AddWithValue("@catid", r.category_id);
+                            cmd.Parameters.AddWithValue("@img", r.recipe_img ?? "");
+                            cmd.Parameters.AddWithValue("@desc", r.description ?? "");
                             cmd.Parameters.AddWithValue("@price", r.price);
                             cmd.ExecuteNonQuery();
                             msg.message = "Success";
@@ -711,7 +704,7 @@ namespace FoodOutlet.AppCode
             {
                 conn.Open();
                 string table = GetRecipeTableName();
-                string sql = $"SELECT id, recipe_name, category_id, price FROM {table} WHERE id=@id";
+                string sql = $"SELECT id, recipe_name, category_id, recipe_img, description, price FROM {table} WHERE id=@id";
                 using (var cmd = new MySqlCommand(sql, conn))
                 {
                     cmd.Parameters.AddWithValue("@id", id);
@@ -724,6 +717,8 @@ namespace FoodOutlet.AppCode
                                 id = rdr["id"] == DBNull.Value ? 0 : Convert.ToInt32(rdr["id"]),
                                 recipe_name = rdr["recipe_name"]?.ToString() ?? "",
                                 category_id = rdr["category_id"] == DBNull.Value ? 0 : Convert.ToInt32(rdr["category_id"]),
+                                recipe_img = rdr["recipe_img"]?.ToString() ?? "",
+                                description = rdr["description"]?.ToString() ?? "",
                                 price = rdr["price"] == DBNull.Value ? 0 : Convert.ToDecimal(rdr["price"])
                             };
                         }

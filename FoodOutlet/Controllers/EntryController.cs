@@ -1,17 +1,20 @@
 ﻿using FoodOutlet.AppCode;
 using Microsoft.AspNetCore.Mvc;
 using MySqlX.XDevAPI.Common;
-
+using Microsoft.AspNetCore.Http;
+using System.IO;
 
 namespace FoodOutlet.Controllers
 {
     public class EntryController : Controller
     {
         private readonly Staff _staff;
+        private readonly IWebHostEnvironment _env;
 
-        public EntryController(Staff staff)
+        public EntryController(Staff staff, IWebHostEnvironment env)
         {
             _staff = staff;
+            _env = env;
         }
 
         #region view
@@ -64,6 +67,11 @@ namespace FoodOutlet.Controllers
             return View();
         }
 
+        public IActionResult RecipeList()
+        {
+            // returns Views/Entry/RecipeList.cshtml
+            return View();
+        }
         #endregion
 
         #region Staff
@@ -71,7 +79,11 @@ namespace FoodOutlet.Controllers
         [HttpPost("api/set_staff")]
         public Models.Message SetStaff([FromBody] Models.Staff staff)
         {
-            return _staff.SetStaff(staff);
+            // if id present update, otherwise insert
+            if (staff.id > 0)
+                return _staff.UpdateStaff(staff);
+            else
+                return _staff.SetStaff(staff);
         }
 
         [HttpPost("api/delete_staff")]
@@ -149,6 +161,25 @@ namespace FoodOutlet.Controllers
         {
             int id = payload.id;
             return _staff.DeleteRecipe(id);
+        }
+
+        [HttpPost("api/upload_recipe_image")]
+        public IActionResult UploadRecipeImage(IFormFile file)
+        {
+            if (file == null || file.Length == 0) return BadRequest(new { message = "No file uploaded" });
+
+            var uploads = Path.Combine(_env.WebRootPath ?? "wwwroot", "img", "recipes");
+            if (!Directory.Exists(uploads)) Directory.CreateDirectory(uploads);
+
+            var fileName = $"{Guid.NewGuid()}{Path.GetExtension(file.FileName)}";
+            var filePath = Path.Combine(uploads, fileName);
+            using (var stream = new FileStream(filePath, FileMode.Create))
+            {
+                file.CopyTo(stream);
+            }
+
+            var relative = $"/img/recipes/{fileName}";
+            return Ok(new { imageUrl = relative });
         }
 
         // debugging helper for resign table: name, columns, count, raw rows

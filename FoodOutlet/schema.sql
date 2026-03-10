@@ -1,117 +1,102 @@
-﻿-- ===============================
--- ROLES
--- ===============================
-CREATE TABLE roles (
+﻿CREATE DATABASE food_outlet;
+USE food_outlet;
+
+-- Roles
+CREATE TABLE Roles (
     id INT AUTO_INCREMENT PRIMARY KEY,
     role_name VARCHAR(100) NOT NULL
 );
 
--- ===============================
--- REGISTRATIONS
--- ===============================
-CREATE TABLE registrations (
+-- Registrations
+CREATE TABLE Registrations (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    registration_name VARCHAR(150) NOT NULL,
+    registration_name VARCHAR(150),
     birth_of_date DATE,
-    email VARCHAR(150) UNIQUE,
-    phone_no VARCHAR(20), -- ✅ Added phone number field
+    email VARCHAR(150),
     password_hash VARCHAR(255),
     address TEXT,
+    phone_no VARCHAR(20),
     role_id INT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (role_id) REFERENCES roles(id)
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (role_id) REFERENCES Roles(id)
 );
 
--- ===============================
--- RESIGNS
--- ===============================
-CREATE TABLE resigns (
+-- Resigns
+CREATE TABLE Resigns (
     id INT AUTO_INCREMENT PRIMARY KEY,
     assignment_name VARCHAR(150),
     registration_id INT,
     reason TEXT,
     resign_at DATETIME,
-    FOREIGN KEY (registration_id) REFERENCES registrations(id)
+    FOREIGN KEY (registration_id) REFERENCES Registrations(id)
 );
 
--- ===============================
--- PAYMENT METHODS
--- ===============================
-CREATE TABLE payment_methods (
+-- Payment Methods
+CREATE TABLE Payment_Methods (
     id INT AUTO_INCREMENT PRIMARY KEY,
     payment_name VARCHAR(100),
     note TEXT,
     is_deleted BOOLEAN DEFAULT FALSE,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- ===============================
--- PAYMENTS
--- ===============================
-CREATE TABLE payments (
+-- Payments
+CREATE TABLE Payments (
     id INT AUTO_INCREMENT PRIMARY KEY,
     payment_method_id INT,
     payment_status VARCHAR(50),
     amount DECIMAL(10,2),
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (payment_method_id) REFERENCES payment_methods(id)
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (payment_method_id) REFERENCES Payment_Methods(id)
 );
 
--- ===============================
--- TABLE LISTS
--- ===============================
-CREATE TABLE table_lists (
+-- Table Lists
+CREATE TABLE Table_Lists (
     id INT AUTO_INCREMENT PRIMARY KEY,
     table_name VARCHAR(100),
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- ===============================
--- CATEGORIES
--- ===============================
-CREATE TABLE categories (
+-- Categories
+CREATE TABLE Categories (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    category_name VARCHAR(100),
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    category_name VARCHAR(150),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- ===============================
--- RECIPES
--- ===============================
-CREATE TABLE recipes (
+-- Recipes
+CREATE TABLE Recipes (
     id INT AUTO_INCREMENT PRIMARY KEY,
     recipe_name VARCHAR(150),
     category_id INT,
+    recipe_img VARCHAR(255),
+    description TEXT,
     price DECIMAL(10,2),
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (category_id) REFERENCES categories(id)
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (category_id) REFERENCES Categories(id)
 );
 
--- ===============================
--- INVENTORIES
--- ===============================
-CREATE TABLE inventories (
+-- Inventories
+CREATE TABLE Inventories (
     id INT AUTO_INCREMENT PRIMARY KEY,
     stock_qty INT,
-    recipe_id INT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (recipe_id) REFERENCES recipes(id)
+    receipe_id INT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (receipe_id) REFERENCES Recipes(id)
 );
 
--- ===============================
--- ORDERS
--- ===============================
-CREATE TABLE orders (
+-- Orders
+CREATE TABLE `Order` (
     id INT AUTO_INCREMENT PRIMARY KEY,
     payment_id INT,
     table_id INT,
-    recipe_id INT,
+    receipe_id INT,
     order_status VARCHAR(50),
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (payment_id) REFERENCES payments(id),
-    FOREIGN KEY (table_id) REFERENCES table_lists(id),
-    FOREIGN KEY (recipe_id) REFERENCES recipes(id)
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (payment_id) REFERENCES Payments(id),
+    FOREIGN KEY (table_id) REFERENCES Table_Lists(id),
+    FOREIGN KEY (receipe_id) REFERENCES Recipes(id)
 );

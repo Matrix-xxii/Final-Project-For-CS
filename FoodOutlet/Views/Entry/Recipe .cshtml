@@ -1,0 +1,239 @@
+﻿@model FoodOutlet.Models.Recipe
+@{
+    bool isEdit = Model != null && Model.id > 0;
+    ViewData["Title"] = "Recipe";
+}
+
+<style>
+    .section-card {
+        border-radius: 12px;
+    }
+
+    .form-label-custom {
+        font-weight: 600;
+        text-align: right;
+        padding-top: 8px;
+    }
+
+    .price-box input {
+        border-right: 0;
+    }
+
+    .price-box span {
+        background: #f8f9fa;
+        font-weight: 600;
+    }
+
+    .action-btn {
+        width: 36px;
+        height: 36px;
+        border-radius: 8px;
+        border: none;
+        margin: 0 3px;
+    }
+
+    .btn-edit {
+        background: #ffc107;
+        color: #000;
+    }
+
+    .btn-delete {
+        background: #dc3545;
+        color: #fff;
+    }
+</style>
+<div class="content-header">
+    <div class="container-fluid"></div>
+</div>
+<section class="content">
+    <div class="container-fluid">
+
+        <div class="row">
+
+            <!-- LEFT FORM -->
+            <div class="col-md-7">
+                <div class="card section-card shadow-sm">
+                    <div class="card-header">
+                        <h4 class="card-title font-weight-bold">
+                            @(isEdit ? "Edit Recipe" : "Recipe Registration")
+                        </h4>
+                    </div>
+
+                    <div class="card-body">
+
+                        <input type="hidden" id="hdnId" value="@(Model?.id ?? 0)" />
+
+                        <div class="row mb-3">
+                            <div class="col-md-4 form-label-custom">Category</div>
+                            <div class="col-md-8">
+                                <select id="ddlCategory" class="form-control">
+                                    <option value="">-- Select Category --</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-4 form-label-custom">Recipe Name</div>
+                            <div class="col-md-8">
+                                <input id="txtRecipeName"
+                                       class="form-control"
+                                       value="@(Model?.recipe_name ?? "")"
+                                       placeholder="Enter recipe name"
+                                       @(isEdit ? "readonly" : "") />
+                            </div>
+                        </div>
+
+                        <div class="row mb-2">
+                            <div class="col-md-4 form-label-custom">Price</div>
+                            <div class="col-md-8">
+                                <div class="input-group price-box">
+                                    <input id="txtPrice"
+                                           class="form-control"
+                                           value="@(Model?.price.ToString("0.##") ?? "")"
+                                           placeholder="Enter price" />
+                                    <span class="input-group-text">MMK</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="text-right">
+                            <button class="btn btn-success" onclick="saveRecipe()">
+                                <i class="fas fa-check"></i>
+                                @(isEdit ? "Update" : "Create")
+                            </button>
+
+                            <button class="btn btn-secondary ml-2" onclick="clearForm()">
+                                Clear
+                            </button>
+                        </div>
+
+                        @if(isEdit){
+                        <button class="btn btn-primary ml-2" onclick="goToRegistrationStatus()">
+                            <i class="fas fa-arrow-left"></i> Back
+                        </button>
+                        }
+
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-5"></div>
+        </div>
+
+        <!-- TABLE -->
+        <div class="row mt-4">
+            <div class="col-md-12">
+                <div class="card shadow-sm section-card">
+                    <div class="card-header">
+                        <h4 class="mb-0 font-weight-bold">Recipe List</h4>
+                    </div>
+
+                    <div class="card-body">
+                        <table class="table table-striped" id="catTable" style="width:100%">
+                            <thead>
+                                <tr>
+                                    <th style="width:8%;">No</th>
+                                    <th>Name</th>
+                                    <th>Category</th>
+                                    <th>Price (MMK)</th>
+                                    <th class="text-center" style="width:150px;">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+    </div>
+</section>
+<script>
+
+
+    function loadCategories(selectedId) {
+        $.get('/api/get_all_categories', function (data) {
+            let list = data.categories || [];
+            let $ddl = $('#ddlCategory');
+            $ddl.empty();
+            $ddl.append('<option value="">-- Select Category --</option>');
+            if (list.length === 0) {
+                $ddl.append('<option value="">No categories found</option>');
+            } else {
+                list.forEach(function (cat) {
+                    $ddl.append(`<option value="${cat.id}"${selectedId == cat.id ? ' selected' : ''}>${cat.category_name}</option>`);
+                });
+            }
+        });
+    }
+
+        function goToRegistrationStatus() {
+        window.location.href = "/Entry/Recipe";
+    }
+    function saveRecipe() {
+    let obj = {
+        id: parseInt($('#hdnId').val()),
+        recipe_name: $('#txtRecipeName').val(),
+        category_id: parseInt($('#ddlCategory').val()) || 0,
+        price: parseFloat($('#txtPrice').val())
+    };
+
+        if (!obj.recipe_name) {
+            alert("Recipe name required");
+            return;
+        }
+
+        if (!obj.price || obj.price <= 0) {
+            alert("Invalid price");
+            return;
+        }
+
+        $.ajax({
+            type: 'POST',
+            url: '/api/set_recipe',
+            data: JSON.stringify(obj),
+            contentType: 'application/json',
+            dataType: 'json'
+        })
+        .done(function (res) {
+            if (res.message === "Success") {
+                loadRecipes();
+                clearForm();
+            } else {
+                alert(res.message);
+            }
+        });
+    }
+
+    function deleteRecipe(id) {
+
+        if (!confirm("Delete this recipe?")) return;
+
+        $.ajax({
+            type: 'POST',
+            url: '/api/delete_recipe',
+            data: JSON.stringify({ id: id }),
+            contentType: 'application/json',
+            dataType: 'json'
+        })
+        .done(function (res) {
+            if (res.message === "Success") {
+                loadRecipes();
+            } else {
+                alert(res.message);
+            }
+        });
+    }
+
+    function editRecipe(id) {
+        window.location = '/Entry/Recipe?id=' + id;
+    }
+
+    function clearForm() {
+        $('#hdnId').val(0);
+        $('#txtRecipeName').val('');
+        $('#txtPrice').val('');
+        $('#ddlCategory').val('');
+    }
+
+</script>

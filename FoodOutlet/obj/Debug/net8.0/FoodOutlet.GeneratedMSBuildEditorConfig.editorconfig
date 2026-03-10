@@ -30,8 +30,16 @@ build_metadata.AdditionalFiles.CssScope =
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcRW50cnlcSW52ZW50b3J5LmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
 
+[D:/MLM/Final/FoodOutlet/Views/Entry/Recipe .cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcRW50cnlcUmVjaXBlIC5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
 [D:/MLM/Final/FoodOutlet/Views/Entry/Recipe.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcRW50cnlcUmVjaXBlLmNzaHRtbA==
+build_metadata.AdditionalFiles.CssScope = 
+
+[D:/MLM/Final/FoodOutlet/Views/Entry/RecipeList.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcRW50cnlcUmVjaXBlTGlzdC5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
 
 [D:/MLM/Final/FoodOutlet/Views/Entry/Registration.cshtml]

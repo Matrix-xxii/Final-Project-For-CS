@@ -54,6 +54,10 @@ wwwroot\img\prod-2.jpg
 wwwroot\img\prod-3.jpg
 wwwroot\img\prod-4.jpg
 wwwroot\img\prod-5.jpg
+wwwroot\img\recipes\173f6b07-dcf3-417d-93af-a1d959118faa.jpg
+wwwroot\img\recipes\2e36678b-512e-46e6-9070-ab92a798d81f.jpg
+wwwroot\img\recipes\33727568-2a61-46e2-a954-54ecda5a1226.jpg
+wwwroot\img\recipes\549754e0-655a-4de0-b66a-3086bc25b0d2.png
 wwwroot\img\user1-128x128.jpg
 wwwroot\img\user2-160x160.jpg
 wwwroot\img\user3-128x128.jpg
