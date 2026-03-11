@@ -56,13 +56,16 @@ namespace FoodOutlet.Controllers
 
         public IActionResult Recipe(int? id)
         {
+            // load categories for server-side rendering as a fallback
+            ViewData["Categories"] = _staff.GetAllCategories();
+
             if (id.HasValue)
             {
-                // Use a method that returns a Recipe model, not an anonymous type!
                 var recipe = _staff.GetRecipeById(id.Value);
                 ViewData["Title"] = recipe?.recipe_name ?? "Recipe";
                 return View(recipe);
             }
+
             ViewData["Title"] = "Recipe";
             return View();
         }

@@ -32,6 +32,7 @@
                         <div class="col-md-9">
                             <select id="ddlCategory" class="form-control">
                                 <option value="">-- Select Category --</option>
+                                
                             </select>
                         </div>
                     </div>
@@ -65,7 +66,6 @@
                         <div class="col-md-9">
                             <input type="file" id="imgFile" accept="image/*" class="form-control" />
                             <img id="imgPreview" class="img-preview" src="@(Model?.recipe_img ?? "")" alt="Preview" />
-                            <small class="form-text text-muted">Image is uploaded immediately; saved path will be stored with recipe.</small>
                         </div>
                     </div>
 
@@ -78,10 +78,20 @@
 
                     <div class="form-group row">
                         <div class="col-md-9 offset-md-3 text-right">
-                            <button id="btnSave" class="btn btn-success" onclick="saveRecipe()">
-                                <i class="fas fa-check"></i> @(isEdit ? "Update" : "Create")
-                            </button>
-                            <a class="btn btn-secondary ml-2" asp-controller="Entry" asp-action="RecipeList">Back to List</a>
+                            @if (isEdit)
+                            {
+                                <button id="btnSave" class="btn btn-success" onclick="saveRecipe()">
+                                    <i class="fas fa-check"></i>Update
+                                </button>
+                                <a class="btn btn-secondary ml-2" asp-controller="Entry" asp-action="RecipeList">Back to List</a>
+                            }
+                            else
+                            {
+                                <button id="btnSave" class="btn btn-success" onclick="saveRecipe()">
+                                    <i class="fas fa-check"></i>Create
+                                </button>
+                                <a class="btn btn-secondary ml-2" asp-controller="Entry" asp-action="Recipe">Clear</a>
+                            }
                         </div>
                     </div>
                 </form>
@@ -92,71 +102,86 @@
 
 @section Scripts {
 <script>
-    // local state for uploaded image url
+    // local state for uploaded image path (string)
     let uploadedImageUrl = "";
 
-    $(function () {
-        // load categories and preselect when editing
-        loadCategories(@(Model?.category_id ?? 0));
+    // Mirror Registration.cshtml logic structure exactly:
+    // 1) call loader on ready
+    // 2) loader uses $.ajax GET, empties select, appends items via $.each, and sets selection via inline Razor when editing
+    // 3) file change handler uploads to /api/upload_recipe_image
+    // 4) save builds object, POSTs to /api/set_recipe, checks res.message, alerts, clears and redirects
+    $(document).ready(function () {
+        loadCategories();
+    });
 
-        // if model has image already, keep it as uploadedImageUrl (for saving)
-        uploadedImageUrl = "@(Model?.recipe_img ?? "")";
+    function loadCategories() {
 
-        // wire image upload
-        $('#imgFile').on('change', function () {
-            const file = this.files[0];
-            if (!file) return;
+        $.ajax({
+            type: "GET",
+            url: "/api/get_all_categories",
+            success: function (data) {
 
-            const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
-            if (!allowedTypes.includes(file.type)) {
-                alert('Only JPG / PNG / WEBP allowed');
-                $(this).val('');
-                return;
+                $("#ddlCategory").empty();
+                $("#ddlCategory").append('<option value="">-- Select Category --</option>');
+
+                $.each(data.categories, function (i, cat) {
+
+                    $("#ddlCategory").append(
+                        '<option value="' + cat.id + '">' +
+                            cat.category_name +
+                        '</option>'
+                    );
+
+                });
+                // if editing, pick existing category (inline Razor mirrors Registration pattern)
+                @if(Model != null && Model.category_id > 0){
+                    <text>$("#ddlCategory").val("@Model.category_id");</text>
+                }
+            },
+
+            error: function () {
+                alert("Cannot load categories");
             }
-            if (file.size > 5 * 1024 * 1024) {
-                alert('File must be smaller than 5MB');
-                $(this).val('');
-                return;
-            }
+        });
 
-            const fd = new FormData();
-            fd.append('file', file);
+    }
 
-            $.ajax({
-                url: '/api/upload_recipe_image',
-                type: 'POST',
-                data: fd,
-                contentType: false,
-                processData: false
-            })
-            .done(function (res) {
-                uploadedImageUrl = res.imageUrl || "";
+    // file upload handler (kept simple and consistent with other views)
+    $('#imgFile').on('change', function () {
+        var file = this.files && this.files[0];
+        if (!file) return;
+
+        var form = new FormData();
+        form.append('file', file);
+
+        $('#btnSave').prop('disabled', true);
+        $.ajax({
+            url: '/api/upload_recipe_image',
+            type: 'POST',
+            data: form,
+            contentType: false,
+            processData: false
+        })
+        .done(function (res) {
+            if (res && res.imageUrl) {
+                uploadedImageUrl = res.imageUrl;
                 $('#imgPreview').attr('src', uploadedImageUrl);
-            })
-            .fail(function (xhr) {
-                const msg = xhr?.responseJSON?.message || 'Upload failed';
-                alert(msg);
-            });
+            } else {
+                alert('Upload failed');
+            }
+        })
+        .fail(function () {
+            alert('Image upload failed');
+        })
+        .always(function () {
+            $('#btnSave').prop('disabled', false);
         });
     });
 
-    function loadCategories(selectedId) {
-        $.get('/api/get_all_categories')
-            .done(function (data) {
-                const list = data.categories || [];
-                const $ddl = $('#ddlCategory');
-                $ddl.empty().append('<option value="">-- Select Category --</option>');
-                list.forEach(function (cat) {
-                    $ddl.append(`<option value="${cat.id}" ${selectedId == cat.id ? 'selected' : ''}>${cat.category_name}</option>`);
-                });
-            })
-            .fail(function () {
-                alert('Failed to load categories');
-            });
-    }
-
+    // saveRecipe mirrors saveStaff's structure and behavior
     function saveRecipe() {
-        const model = {
+
+        var obj = {
             id: parseInt($('#hdnId').val()) || 0,
             recipe_name: $('#txtRecipeName').val().trim(),
             category_id: parseInt($('#ddlCategory').val()) || 0,
@@ -165,29 +190,42 @@
             price: parseFloat($('#txtPrice').val()) || 0
         };
 
-        if (!model.recipe_name) { alert('Recipe name required'); return; }
-        if (!model.price || model.price <= 0) { alert('Invalid price'); return; }
+        console.log(obj);
 
-        $('#btnSave').prop('disabled', true);
+        if (!obj.recipe_name) { alert('Recipe name required'); return; }
+        if (!obj.price || obj.price <= 0) { alert('Invalid price'); return; }
+
         $.ajax({
-            type: 'POST',
-            url: '/api/set_recipe',
-            data: JSON.stringify(model),
-            contentType: 'application/json'
-        })
-        .done(function (res) {
-            if (res.message === 'Success' || res.message === 'Updated') {
+            type: "POST",
+            url: "/api/set_recipe",
+            data: JSON.stringify(obj),
+            contentType: "application/json; charset=utf-8",
+            dataType: "json"
+        }).done(function (res) {
+
+            if (res.message == "Success" || res.message == "Updated") {
+                alert("Saved");
+                clearForm();
                 window.location = '/Entry/RecipeList';
             } else {
                 alert(res.message);
             }
-        })
-        .fail(function () {
+
+        }).fail(function () {
             alert('Save failed');
-        })
-        .always(function () {
-            $('#btnSave').prop('disabled', false);
         });
+    }
+
+    // clearForm follows the same semantics as Registration.clearForm
+    function clearForm() {
+        $('#hdnId').val(0);
+        $('#txtRecipeName').val('');
+        $('#ddlCategory').val('');
+        $('#txtPrice').val('');
+        $('#txtDescription').val('');
+        // reset preview and uploaded state
+        $('#imgPreview').attr('src', '');
+        uploadedImageUrl = '';
     }
 </script>
 }

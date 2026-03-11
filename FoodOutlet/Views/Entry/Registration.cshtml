@@ -21,15 +21,14 @@
                         </h3>
                     </div>
                     <form class="form-horizontal">
-    <input type="hidden" id="hdnId" value="@(Model?.id ?? 0)" />
+                        <input type="hidden" id="hdnId" value="@(Model?.id ?? 0)" />
                         <div class="card-block">
                             <div class="row">
 
                                 <div class="col-md-2"></div>
 
                                 <div class="col-md-6">
-                                    <input type="hidden" id="hdnId" value="@(Model?.id ?? 0)" />
-                            <div class="form-group row">
+                                    <div class="form-group row">
                                         <div class="col-md-4"></div>
                                         <div class="col-md-8" style="text-align:center;">
                                             <input style="display:none" name="file" id="input-image-hidden"
@@ -92,27 +91,26 @@
                                             <input type="@(isEdit ? "text" : "password")" class="form-control" id="txtPassword" value="@(Model?.password ?? "")">
                                         </div>
                                     </div>
+                                    
                                     <div class="form-group row">
-                                        <div class="col-md-4"></div>
-                                        <div class="col-md-8">
-                                            @if (!isEdit)
-                                        {
-                                            <button type="button" class="btn btn-success float-right" onclick="saveStaff()">
-                                                Create
-                                            </button>
-                                        }
-                                        else
-                                        {
-                                            <button type="button" class="btn btn-primary float-right" onclick="saveStaff()">
-                                                Update
-                                            </button>
-                                            <span class="text-muted ml-2">(Name is read-only)</span>
-                                        }
+                                        <div class="col-md-9 offset-md-3 text-right">
+                                            @if (isEdit)
+                                            {
+                                                <button id="btnSave" class="btn btn-success" onclick="saveStaff()">
+                                                    <i class="fas fa-check"></i>Update
+                                                </button>
+                                                <a class="btn btn-secondary ml-2" asp-controller="Entry" asp-action="StaffList">Back to Staff List</a>
+                                                
+                                            }
+                                            else
+                                            {
+                                                <button id="btnSave" class="btn btn-success" onclick="saveRsaveStaffecipe()">
+                                                    <i class="fas fa-check"></i>Create
+                                                </button>
+                                                <a class="btn btn-secondary ml-2" asp-controller="Entry" asp-action="Registration">Clear</a>
+                                            }
                                         </div>
                                     </div>
-
-                                </div>
-
                                 <div class="col-md-4"></div>
                             </div>
                         </div>
@@ -123,43 +121,62 @@
     </div>
 </section>
 <script>
-
-               $(document).ready(function () {
+    $(document).ready(function () {
+        // start loader using same pattern as other pages
         loadRoles();
     });
 
+    // Robust loader copied from prior implementation but improved for debugging and resilience.
     function loadRoles() {
-
+        console.log('loadRoles: requesting /api/get_all_roles');
         $.ajax({
             type: "GET",
             url: "/api/get_all_roles",
-            success: function (data) {
+            dataType: "json"
+        })
+        .done(function (data) {
+            try {
+                console.log('loadRoles: response', data);
+                var list = data && data.roles ? data.roles : data;
 
-                $("#cboStaffRole").empty();
-                $("#cboStaffRole").append('<option value="">Choose</option>');
+                var $sel = $("#cboStaffRole");
+                $sel.empty();
+                $sel.append('<option value="">Choose</option>');
 
-                $.each(data.roles, function (i, role) {
+                if (Array.isArray(list) && list.length) {
+                    $.each(list, function (i, role) {
+                        // be defensive in property names
+                        var id = role.id ?? role.role_id ?? role.Id;
+                        var name = role.role_name ?? role.name ?? role.RoleName ?? '';
+                        $sel.append($('<option>').val(id).text(name));
+                    });
 
-                    $("#cboStaffRole").append(
-                        '<option value="' + role.id + '">' +
-                            role.role_name +
-                        '</option>'
-                    );
-
-                });
-                // if editing, pick existing role
-                @if(Model != null && Model.role_id > 0){
-                    <text>$("#cboStaffRole").val("@Model.role_id");</text>
+                    // if editing, pick existing role
+                    @if(Model != null && Model.role_id > 0){
+                        <text>console.log('loadRoles: selecting role @Model.role_id'); $sel.val('@Model.role_id');</text>
+                    }
+                } else {
+                    console.warn('loadRoles: no roles returned', list);
+                    // still attempt to select server-provided value if present
+                    @if(Model != null && Model.role_id > 0){
+                        <text>console.log('loadRoles: fallback select role @Model.role_id'); $sel.val('@Model.role_id');</text>
+                    }
                 }
-            },
-
-            error: function () {
-                alert("Cannot load roles");
+            } catch (ex) {
+                console.error('loadRoles: exception processing response', ex);
+            }
+        })
+        .fail(function (xhr, status, err) {
+            console.error('loadRoles: AJAX failed', status, err, xhr.responseText);
+            alert("Cannot load roles");
+            // attempt fallback selection of server-side rendered option (if any)
+            @if(Model != null && Model.role_id > 0){
+                <text>$("#cboStaffRole").val("@Model.role_id");</text>
             }
         });
-
     }
-        $("#txtPhone").on("input", function () {
+
+    $("#txtPhone").on("input", function () {
 
         let phone = $(this).val();
 
@@ -174,7 +191,7 @@
 
     });
 
-        function saveStaff(){
+    function saveStaff(){
 
         var obj = {
             id: parseInt($("#hdnId").val()),
@@ -184,9 +201,9 @@
             password: $("#txtPassword").val(),
             phone_no: $("#txtPhone").val(),
             address: $("#txtAddress").val(),
-            role_id: parseInt($("#cboStaffRole").val())
-};
-        console.log(obj);
+            role_id: parseInt($("#cboStaffRole").val() || 0)
+        };
+        console.log('saveStaff: payload', obj);
 
         $.ajax({
             type: "POST",
@@ -204,9 +221,12 @@
                 alert(res.message);
             }
 
+        }).fail(function(xhr, status, err){
+            console.error('saveStaff: failed', status, err, xhr.responseText);
+            alert('Save failed');
         });
     }
-        function clearForm() {
+    function clearForm() {
 
         $("#hdnId").val(0);
         $("#txtStaffName").val("");
@@ -219,4 +239,3 @@
         $("#txtPhone").val("");
     }
 </script>
-
