@@ -7,9 +7,7 @@
     .action-btn { width:36px;height:36px;border-radius:6px;margin:0 3px;border:none; }
 
     /* description preview styling */
-    .desc-preview { display: inline; }
-    .desc-full { display: inline; }
-    .see-more { cursor: pointer; color: #0d6efd; text-decoration: underline; margin-left:6px; }
+    .desc-preview { display: inline; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 480px; }
 </style>
 
 <div class="content-header">
@@ -75,17 +73,15 @@
             .replace(/'/g, "&#039;");
     }
 
-    // produces the description cell HTML: truncated preview + hidden full text + toggle link
-    function makeDescriptionCell(text, maxLen = 100) {
+    // Return a simple truncated string with dots (no "see more" link)
+    function makeDescriptionCell(text, maxLen = 60) {
         text = text || '';
         if (text.length <= maxLen) {
-            return `<span class="desc-full">${escapeHtml(text)}</span>`;
+            return `<span class="desc-preview">${escapeHtml(text)}</span>`;
         }
         const preview = text.substring(0, maxLen).trimEnd();
-        const full = text;
-        return `<span class="desc-preview">${escapeHtml(preview)}&hellip;</span>` +
-               `<span class="desc-full d-none">${escapeHtml(full)}</span>` +
-               `<a href="#" class="see-more">See more</a>`;
+        const dots = ' .....';
+        return `<span class="desc-preview">${escapeHtml(preview)}${dots}</span>`;
     }
 
     function loadRecipes() {
@@ -94,7 +90,7 @@
                 const list = data.recipes || [];
                 recipeTable.clear();
                 list.forEach(function (r, idx) {
-                    const descHtml = makeDescriptionCell(r.description ?? '', 100);
+                    const descHtml = makeDescriptionCell(r.description ?? '', 60);
                     recipeTable.row.add([
                         idx + 1,
                         r.recipe_img ? `<img src="${r.recipe_img}" class="img-thumb" alt="img" />` : '',
@@ -134,26 +130,5 @@
             alert('Delete failed');
         });
     }
-
-    // delegated handler to toggle see more / see less
-    $(document).on('click', '#recipeTable .see-more', function (e) {
-        e.preventDefault();
-        const $link = $(this);
-        const $row = $link.closest('tr');
-        const $preview = $row.find('.desc-preview');
-        const $full = $row.find('.desc-full');
-
-        if ($full.hasClass('d-none')) {
-            // show full, hide preview
-            $preview.addClass('d-none');
-            $full.removeClass('d-none');
-            $link.text('See less');
-        } else {
-            // show preview, hide full
-            $full.addClass('d-none');
-            $preview.removeClass('d-none');
-            $link.text('See more');
-        }
-    });
 </script>
 }
