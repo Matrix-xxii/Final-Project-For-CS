@@ -3,8 +3,135 @@
     ViewData["Title"] = "Home Page";
 }
 
-
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<div class="content-header">
+    <div class="container-fluid">
+    </div>
 </div>
+
+<section class="content">
+    <div class ="container-fluid">
+        <div class="row">
+            <div class="col-lg-3 col-6">
+                <!-- Staff count -->
+                <div class="small-box bg-info">
+                    <div class="inner">
+                        <h3 id="staffCount">0</h3>
+
+                        <p>Total Staff</p>
+                    </div>
+                    <div class="icon">
+                        <i class="ion ion-person"></i>
+                    </div>
+                    <a href="@Url.Action("StaffList", "Entry")" class="small-box-footer">More info <i class="fas fa-arrow-circle-right"></i></a>
+                </div>
+            </div>
+            <!-- ./col -->
+            <div class="col-lg-3 col-6">
+                <!-- Table / Category count -->
+                <div class="small-box bg-success">
+                    <div class="inner">
+                        <h3 id="tableCount">0<sup style="font-size: 20px"></sup></h3>
+
+                        <p>Categories</p>
+                    </div>
+                    <div class="icon">
+                        <i class="ion ion-ios-list"></i>
+                    </div>
+                    <a href="@Url.Action("Category", "Entry")" class="small-box-footer">More info <i class="fas fa-arrow-circle-right"></i></a>
+                </div>
+            </div>
+            <!-- ./col -->
+            <div class="col-lg-3 col-6">
+                <!-- Recipe count -->
+                <div class="small-box bg-warning">
+                    <div class="inner">
+                        <h3 id="recipeCount">0</h3>
+
+                        <p>Recipes</p>
+                    </div>
+                    <div class="icon">
+                        <i class="ion ion-utensils"></i>
+                    </div>
+                    <a href="@Url.Action("RecipeList", "Entry")" class="small-box-footer">More info <i class="fas fa-arrow-circle-right"></i></a>
+                </div>
+            </div>
+            <!-- ./col -->
+            <div class="col-lg-3 col-6">
+                <!-- keep unique visitors as-is or use another stat later -->
+                <div class="small-box bg-danger">
+                    <div class="inner">
+                        <h3 id="uniqueVisitors">65</h3>
+
+                        <p>Unique Visitors</p>
+                    </div>
+                    <div class="icon">
+                        <i class="ion ion-pie-graph"></i>
+                    </div>
+                    <a href="#" class="small-box-footer">More info <i class="fas fa-arrow-circle-right"></i></a>
+                </div>
+            </div>
+            <!-- ./col -->
+        </div>
+    </div>
+    
+</section>
+
+@section Scripts {
+<script>
+    // load dashboard counts using existing API endpoints
+    $(function () {
+        loadDashboardCounts();
+    });
+
+    function loadDashboardCounts() {
+        // staff count: /api/get_all_staffs -> { staff: [...] }
+        var staffReq = $.ajax({ url: '/api/get_all_staffs', method: 'GET', dataType: 'json' });
+        // categories: /api/get_all_categories -> { categories: [...] }
+        var catReq = $.ajax({ url: '/api/get_all_categories', method: 'GET', dataType: 'json' });
+        // recipe count: /api/recipe_debug -> { count: n }
+        var recipeReq = $.ajax({ url: '/api/recipe_debug', method: 'GET', dataType: 'json' });
+
+        $.when(staffReq, catReq, recipeReq).always(function (staffRes, catRes, recipeRes) {
+            // responses from $.when are arrays when using jqXHR: [data, status, jqXHR]
+            try {
+                var staffData = Array.isArray(staffRes) ? staffRes[0] : staffRes;
+                var catData = Array.isArray(catRes) ? catRes[0] : catRes;
+                var recipeData = Array.isArray(recipeRes) ? recipeRes[0] : recipeRes;
+
+                var staffCount = 0, tableCount = 0, recipeCount = 0;
+
+                if (staffData && Array.isArray(staffData.staff)) staffCount = staffData.staff.length;
+                // some APIs may return object directly; try to be defensive
+                else if (staffData && Array.isArray(staffData)) staffCount = staffData.length;
+
+                if (catData && Array.isArray(catData.categories)) tableCount = catData.categories.length;
+                else if (catData && Array.isArray(catData)) tableCount = catData.length;
+
+                if (recipeData && typeof recipeData.count !== 'undefined') recipeCount = parseInt(recipeData.count) || 0;
+                else if (recipeData && Array.isArray(recipeData.recipes)) recipeCount = recipeData.recipes.length;
+                else if (recipeData && Array.isArray(recipeData)) recipeCount = recipeData.length;
+
+                $('#staffCount').text(staffCount.toLocaleString());
+                $('#tableCount').text(tableCount.toLocaleString());
+                $('#recipeCount').text(recipeCount.toLocaleString());
+            } catch (e) {
+                console.error('Error parsing dashboard counts', e);
+            }
+        }).fail(function () {
+            // best-effort: if any request fails individually, set fallback 0 and log
+            $.ajax({ url: '/api/get_all_staffs', method: 'GET', dataType: 'json' })
+            .done(function(d){ $('#staffCount').text((d.staff||[]).length); })
+            .fail(function(){ $('#staffCount').text('0'); console.warn('Failed to load staff count'); });
+
+            $.ajax({ url: '/api/get_all_categories', method: 'GET', dataType: 'json' })
+            .done(function(d){ $('#tableCount').text((d.categories||[]).length); })
+            .fail(function(){ $('#tableCount').text('0'); console.warn('Failed to load categories count'); });
+
+            $.ajax({ url: '/api/recipe_debug', method: 'GET', dataType: 'json' })
+            .done(function(d){ $('#recipeCount').text(d.count || 0); })
+            .fail(function(){ $('#recipeCount').text('0'); console.warn('Failed to load recipe count'); });
+        });
+    }
+</script>
+}
+

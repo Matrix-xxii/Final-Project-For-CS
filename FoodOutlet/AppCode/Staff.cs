@@ -50,6 +50,102 @@ namespace FoodOutlet.AppCode
             return roles;
         }
 
+        // Insert or update a role
+        public Message SetRole(Models.Role role)
+        {
+            var msg = new Message();
+            if (role == null)
+            {
+                msg.message = "Invalid role";
+                return msg;
+            }
+
+            try
+            {
+                using (var conn = _connectionFactory.CreateConnection())
+                {
+                    conn.Open();
+
+                    if (role.id > 0)
+                    {
+                        using (var cmd = new MySqlCommand("UPDATE roles SET role_name = @role_name WHERE id = @id", conn))
+                        {
+                            cmd.Parameters.AddWithValue("@role_name", role.role_name ?? "");
+                            cmd.Parameters.AddWithValue("@id", role.id);
+                            cmd.ExecuteNonQuery();
+                        }
+                        msg.message = "Updated";
+                    }
+                    else
+                    {
+                        using (var cmd = new MySqlCommand("INSERT INTO roles (role_name) VALUES (@role_name)", conn))
+                        {
+                            cmd.Parameters.AddWithValue("@role_name", role.role_name ?? "");
+                            cmd.ExecuteNonQuery();
+                        }
+                        msg.message = "Success";
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                msg.message = "Error: " + ex.Message;
+            }
+
+            return msg;
+        }
+
+        // Delete role by id
+        public Message DeleteRole(int id)
+        {
+            var msg = new Message();
+
+            try
+            {
+                using (var conn = _connectionFactory.CreateConnection())
+                {
+                    conn.Open();
+                    using (var cmd = new MySqlCommand("DELETE FROM roles WHERE id = @id", conn))
+                    {
+                        cmd.Parameters.AddWithValue("@id", id);
+                        cmd.ExecuteNonQuery();
+                    }
+                }
+                msg.message = "Success";
+            }
+            catch (Exception ex)
+            {
+                msg.message = "Error: " + ex.Message;
+            }
+
+            return msg;
+        }
+
+        // optional: get a single role
+        public Models.Role GetRoleById(int id)
+        {
+            using (var conn = _connectionFactory.CreateConnection())
+            {
+                conn.Open();
+                using (var cmd = new MySqlCommand("SELECT id, role_name FROM roles WHERE id = @id LIMIT 1", conn))
+                {
+                    cmd.Parameters.AddWithValue("@id", id);
+                    using (var rdr = cmd.ExecuteReader())
+                    {
+                        if (rdr.Read())
+                        {
+                            return new Models.Role
+                            {
+                                id = rdr["id"] == DBNull.Value ? 0 : Convert.ToInt32(rdr["id"]),
+                                role_name = rdr["role_name"]?.ToString() ?? ""
+                            };
+                        }
+                    }
+                }
+            }
+            return null;
+        }
+
         public Message SetStaff(Models.Staff staf)
         {
             Message msg = new Message();
@@ -97,29 +193,17 @@ namespace FoodOutlet.AppCode
             }
             return msg;
         }
-
-        // helper to check whether reader contains a column
-        private bool HasColumn(MySqlDataReader reader, string columnName)
-        {
-            for (int i = 0; i < reader.FieldCount; i++)
-                if (reader.GetName(i).Equals(columnName, StringComparison.OrdinalIgnoreCase))
-                    return true;
-            return false;
-        }
-
         public List<Models.Staff> GetAllStaffs()
         {
             List<Models.Staff> staffList = new List<Models.Staff>();
             using (MySqlConnection conn = _connectionFactory.CreateConnection())
             {
                 conn.Open();
-                string table = "registrations";
-                string resignTable = GetResignTableName();
-                string query = $@"
+                string query = @"
                     SELECT r.id, r.registration_name AS name, r.email, r.phone_no, r.address, r.role_id,
                            CASE WHEN rs.registration_id IS NULL THEN 'In Service' ELSE 'Resign' END AS status
-                    FROM {table} r
-                    LEFT JOIN {resignTable} rs ON r.id = rs.registration_id
+                    FROM registrations r
+                    LEFT JOIN resigns rs ON r.id = rs.registration_id
                     ORDER BY r.id";
                 using (MySqlCommand cmd = new MySqlCommand(query, conn))
                 using (MySqlDataReader rst = cmd.ExecuteReader())
@@ -130,9 +214,9 @@ namespace FoodOutlet.AppCode
                         {
                             id = rst["id"] == DBNull.Value ? 0 : Convert.ToInt32(rst["id"]),
                             name = rst["name"]?.ToString() ?? "",
-                            email = rst["email"]?.ToString() ?? "",
-                            phone_no = rst["phone_no"]?.ToString() ?? "",
-                            address = rst["address"]?.ToString() ?? "",
+                            email = rst["email"] == DBNull.Value ? "" : rst["email"].ToString(),
+                            phone_no = rst["phone_no"] == DBNull.Value ? "" : rst["phone_no"].ToString(),
+                            address = rst["address"] == DBNull.Value ? "" : rst["address"].ToString(),
                             role_id = rst["role_id"] == DBNull.Value ? 0 : Convert.ToInt32(rst["role_id"]),
                             status = rst["status"]?.ToString() ?? ""
                         });
@@ -159,11 +243,11 @@ namespace FoodOutlet.AppCode
                             {
                                 id = rst["id"] == DBNull.Value ? 0 : Convert.ToInt32(rst["id"]),
                                 name = rst["name"]?.ToString() ?? "",
-                                email = HasColumn(rst, "email") ? rst["email"]?.ToString() ?? "" : "",
-                                password = HasColumn(rst, "password_hash") ? rst["password_hash"]?.ToString() ?? "" : "",
+                                email = rst["email"] == DBNull.Value ? "" : rst["email"].ToString(),
+                                password = rst["password_hash"] == DBNull.Value ? "" : rst["password_hash"].ToString(),
                                 birth_of_date = rst["birth_of_date"] == DBNull.Value ? null : Convert.ToDateTime(rst["birth_of_date"]),
                                 phone_no = rst["phone_no"] == DBNull.Value ? "" : rst["phone_no"].ToString(),
-                                address = rst["address"]?.ToString() ?? "",
+                                address = rst["address"] == DBNull.Value ? "" : rst["address"].ToString(),
                                 role_id = rst["role_id"] == DBNull.Value ? 0 : Convert.ToInt32(rst["role_id"])
                             };
                         }
@@ -224,51 +308,43 @@ namespace FoodOutlet.AppCode
             return msg;
         }
 
-        // debugging helpers
-        public List<string> GetRegistrationColumns()
+        // Simple counts requested by UI
+        public int GetStaffCount()
         {
-            List<string> cols = new List<string>();
             using (var conn = _connectionFactory.CreateConnection())
             {
                 conn.Open();
-                using (var cmd = new MySql.Data.MySqlClient.MySqlCommand(
-                    "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='registrations'", conn))
-                using (var rdr = cmd.ExecuteReader())
+                using (var cmd = new MySqlCommand("SELECT COUNT(*) FROM registrations", conn))
                 {
-                    while (rdr.Read())
-                    {
-                        cols.Add(rdr.GetString(0));
-                    }
+                    return Convert.ToInt32(cmd.ExecuteScalar());
                 }
             }
-            return cols;
         }
 
-        // debugging helper to dump raw resigns rows
-        public List<Dictionary<string, object>> GetRawResigns()
+        public int GetCategoryCount()
         {
-            var result = new List<Dictionary<string, object>>();
             using (var conn = _connectionFactory.CreateConnection())
             {
                 conn.Open();
-                using (var cmd = new MySqlCommand("SELECT * FROM resigns", conn))
-                using (var rdr = cmd.ExecuteReader())
+                using (var cmd = new MySqlCommand("SELECT COUNT(*) FROM categories", conn))
                 {
-                    while (rdr.Read())
-                    {
-                        var row = new Dictionary<string, object>();
-                        for (int i = 0; i < rdr.FieldCount; i++)
-                        {
-                            row[rdr.GetName(i)] = rdr.IsDBNull(i) ? null : rdr.GetValue(i);
-                        }
-                        result.Add(row);
-                    }
+                    return Convert.ToInt32(cmd.ExecuteScalar());
                 }
             }
-            return result;
         }
 
-        // convenience to surface any counts or elements quickly
+        public int GetRoleCount()
+        {
+            using (var conn = _connectionFactory.CreateConnection())
+            {
+                conn.Open();
+                using (var cmd = new MySqlCommand("SELECT COUNT(*) FROM roles", conn))
+                {
+                    return Convert.ToInt32(cmd.ExecuteScalar());
+                }
+            }
+        }
+
         public int GetResignCount()
         {
             using (var conn = _connectionFactory.CreateConnection())
@@ -281,113 +357,21 @@ namespace FoodOutlet.AppCode
             }
         }
 
-        // return the name of the table that actually exists in the database (resigns vs resign)
-        public string GetResignTableName()
-        {
-            using (var conn = _connectionFactory.CreateConnection())
-            {
-                conn.Open();
-                using (var cmd = new MySqlCommand(
-                    "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME IN ('resigns','resign') LIMIT 1", conn))
-                {
-                    var t = cmd.ExecuteScalar();
-                    if (t != null)
-                        return t.ToString();
-                }
-            }
-            // fallback to plural, which has been used historically
-            return "resigns";
-        }
-
-        public List<string> GetResignColumns()
-        {
-            var cols = new List<string>();
-            string table = GetResignTableName();
-            using (var conn = _connectionFactory.CreateConnection())
-            {
-                conn.Open();
-                using (var cmd = new MySqlCommand(
-                    $"SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='{table}'", conn))
-                using (var rdr = cmd.ExecuteReader())
-                {
-                    while (rdr.Read()) cols.Add(rdr.GetString(0));
-                }
-            }
-            return cols;
-        }
-
+        // Resign records — use schema's 'resign_at' and return resign nullable
         public List<dynamic> GetResignRecords()
         {
             var list = new List<dynamic>();
             using (var conn = _connectionFactory.CreateConnection())
             {
                 conn.Open();
-                var rcols = GetResignColumns();
-                string keyCol;
-                if (rcols.Contains("registration_id", StringComparer.OrdinalIgnoreCase))
-                    keyCol = "registration_id";
-                else if (rcols.Contains("resigned", StringComparer.OrdinalIgnoreCase))
-                    keyCol = "resigned";
-                else
-                    keyCol = "registration_id";
-                string sql = $@"SELECT r.id,r.name,r.email,r.phone_no,r.address,r.role_id,rs.reason,rs.resign
-                               FROM registrations r
-                               INNER JOIN resigns rs ON r.id = rs.{keyCol}
-                               ORDER BY rs.resign DESC";
-                try
-                {
-                    using (var cmd = new MySqlCommand(sql, conn))
-                    using (var rdr = cmd.ExecuteReader())
-                    {
-                        while (rdr.Read())
-                        {
-                            list.Add(new {
-                                id = rdr["id"] == DBNull.Value ? 0 : Convert.ToInt32(rdr["id"]),
-                                name = rdr["name"]?.ToString(),
-                                email = HasColumn(rdr, "email") ? rdr["email"]?.ToString() : "",
-                                phone_no = HasColumn(rdr, "phone_no") ? rdr["phone_no"]?.ToString() : "",
-                                address = HasColumn(rdr, "address") ? rdr["address"]?.ToString() : "",
-                                role_id = rdr["role_id"] == DBNull.Value ? 0 : Convert.ToInt32(rdr["role_id"]),
-                                reason = rdr["reason"]?.ToString(),
-                                resign = rdr["resign"] == DBNull.Value ? (DateTime?)null : Convert.ToDateTime(rdr["resign"])
-                            });
-                        }
-                    }
-                }
-                catch (MySqlException ex)
-                {
-                    Console.WriteLine($"SQL Error in GetResignRecords: {ex.Message}");
-                }
-            }
-            return list;
-        }                                                   
 
-        // return resigned staff details by joining on registration_id
-        public List<dynamic> GetResignedStaffs()
-        {
-            var list = new List<dynamic>();
-            using (var conn = _connectionFactory.CreateConnection())
-            {
-                conn.Open();
-                var rcols = GetResignColumns();
-                // decide foreign key column between registrations and resigns
-                string keyCol;
-                if (rcols.Contains("registration_id", StringComparer.OrdinalIgnoreCase))
-                    keyCol = "registration_id";
-                else if (rcols.Contains("resigned", StringComparer.OrdinalIgnoreCase))
-                    keyCol = "resigned";
-                else
-                    keyCol = "registration_id";
-                // pick correct date column
-                string dateCol = "resigned";
-                if (rcols.Contains("resign_date", StringComparer.OrdinalIgnoreCase)) dateCol = "resign_date";
-                else if (rcols.Contains("resigned_date", StringComparer.OrdinalIgnoreCase)) dateCol = "resigned_date";
-                else if (rcols.Contains("resign_at", StringComparer.OrdinalIgnoreCase)) dateCol = "resign_at";
+                string sql = @"
+                    SELECT r.id, r.registration_name AS name, r.email, r.phone_no, r.address, r.role_id,
+                           rs.reason, rs.resign_at AS resign
+                    FROM registrations r
+                    INNER JOIN resigns rs ON r.id = rs.registration_id
+                    ORDER BY (rs.resign_at IS NOT NULL) DESC, rs.resign_at DESC, rs.id DESC";
 
-                string table = GetResignTableName();
-                string sql = $@"SELECT r.id,r.registration_name,r.email,r.phone_no,r.address,r.role_id,rs.reason,rs.{dateCol} AS resign
-                               FROM registrations r
-                               INNER JOIN {table} rs ON r.id = rs.{keyCol} ORDER BY rs.{dateCol} DESC";
                 using (var cmd = new MySqlCommand(sql, conn))
                 using (var rdr = cmd.ExecuteReader())
                 {
@@ -395,65 +379,18 @@ namespace FoodOutlet.AppCode
                     {
                         list.Add(new {
                             id = rdr["id"] == DBNull.Value ? 0 : Convert.ToInt32(rdr["id"]),
-                            name = rdr["registration_name"]?.ToString(),
-                            email = HasColumn(rdr, "email") ? rdr["email"]?.ToString() : "",
-                            phone_no = HasColumn(rdr, "phone_no") ? rdr["phone_no"]?.ToString() : "",
-                            address = HasColumn(rdr, "address") ? rdr["address"]?.ToString() : "",
+                            name = rdr["name"]?.ToString() ?? "",
+                            email = rdr["email"] == DBNull.Value ? "" : rdr["email"].ToString(),
+                            phone_no = rdr["phone_no"] == DBNull.Value ? "" : rdr["phone_no"].ToString(),
+                            address = rdr["address"] == DBNull.Value ? "" : rdr["address"].ToString(),
                             role_id = rdr["role_id"] == DBNull.Value ? 0 : Convert.ToInt32(rdr["role_id"]),
-                            reason = rdr["reason"]?.ToString(),
+                            reason = rdr["reason"] == DBNull.Value ? "" : rdr["reason"].ToString(),
                             resign = rdr["resign"] == DBNull.Value ? (DateTime?)null : Convert.ToDateTime(rdr["resign"])
                         });
                     }
                 }
             }
             return list;
-        }
-
-        // role methods
-        public Message SetRole(Models.Role role)
-        {
-            Message msg = new Message();
-            try
-            {
-                using (MySqlConnection conn = _connectionFactory.CreateConnection())
-                {
-                    conn.Open();
-                    using (var cmd = new MySqlCommand("INSERT INTO roles (role_name) VALUES (@role_name)", conn))
-                    {
-                        cmd.Parameters.AddWithValue("@role_name", role.role_name);
-                        cmd.ExecuteNonQuery();
-                        msg.message = "Success";
-                    }
-                }
-            }
-            catch (Exception e)
-            {
-                msg.message = "Error: " + e.Message;
-            }
-            return msg;
-        }
-
-        public Message DeleteRole(int id)
-        {
-            Message msg = new Message();
-            try
-            {
-                using (MySqlConnection conn = _connectionFactory.CreateConnection())
-                {
-                    conn.Open();
-                    using (var cmd = new MySqlCommand("DELETE FROM roles WHERE id = @id", conn))
-                    {
-                        cmd.Parameters.AddWithValue("@id", id);
-                        cmd.ExecuteNonQuery();
-                        msg.message = "Success";
-                    }
-                }
-            }
-            catch (Exception e)
-            {
-                msg.message = "Error: " + e.Message;
-            }
-            return msg;
         }
 
         // category methods
@@ -544,10 +481,9 @@ namespace FoodOutlet.AppCode
             using (var conn = _connectionFactory.CreateConnection())
             {
                 conn.Open();
-                string table = GetRecipeTableName();
-                string sql = $@"
+                string sql = @"
             SELECT r.id, r.recipe_name, r.category_id, r.recipe_img, r.description, r.price, c.category_name
-            FROM {table} r
+            FROM recipes r
             LEFT JOIN categories c ON r.category_id = c.id
             ORDER BY r.id";
                 using (var cmd = new MySqlCommand(sql, conn))
@@ -569,6 +505,7 @@ namespace FoodOutlet.AppCode
             }
             return list;
         }
+
         public Message DeleteRecipe(int id)
         {
             Message msg = new Message();
@@ -577,7 +514,6 @@ namespace FoodOutlet.AppCode
                 using (var conn = _connectionFactory.CreateConnection())
                 {
                     conn.Open();
-                    string table = GetRecipeTableName();
 
                     using (var tx = conn.BeginTransaction())
                     {
@@ -587,7 +523,7 @@ namespace FoodOutlet.AppCode
                             cmdInv.ExecuteNonQuery();
                         }
 
-                        using (var cmd = new MySqlCommand($"DELETE FROM {table} WHERE id=@id", conn, tx))
+                        using (var cmd = new MySqlCommand("DELETE FROM recipes WHERE id=@id", conn, tx))
                         {
                             cmd.Parameters.AddWithValue("@id", id);
                             cmd.ExecuteNonQuery();
@@ -606,47 +542,12 @@ namespace FoodOutlet.AppCode
             return msg;
         }
 
-        // helpers for recipe diagnostics
-        public string GetRecipeTableName()
-        {
-            using (var conn = _connectionFactory.CreateConnection())
-            {
-                conn.Open();
-                using (var cmd = new MySqlCommand(
-                    "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME IN ('recipes','recipe') LIMIT 1", conn))
-                {
-                    var t = cmd.ExecuteScalar();
-                    if (t != null)
-                        return t.ToString();
-                }
-            }
-            return "recipes";
-        }
-
-        public List<string> GetRecipeColumns()
-        {
-            var cols = new List<string>();
-            string table = GetRecipeTableName();
-            using (var conn = _connectionFactory.CreateConnection())
-            {
-                conn.Open();
-                using (var cmd = new MySqlCommand(
-                    $"SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='{table}'", conn))
-                using (var rdr = cmd.ExecuteReader())
-                {
-                    while (rdr.Read()) cols.Add(rdr.GetString(0));
-                }
-            }
-            return cols;
-        }
-
         public int GetRecipeCount()
         {
             using (var conn = _connectionFactory.CreateConnection())
             {
                 conn.Open();
-                string table = GetRecipeTableName();
-                using (var cmd = new MySqlCommand($"SELECT COUNT(*) FROM {table}", conn))
+                using (var cmd = new MySqlCommand("SELECT COUNT(*) FROM recipes", conn))
                 {
                     return Convert.ToInt32(cmd.ExecuteScalar());
                 }
@@ -661,10 +562,9 @@ namespace FoodOutlet.AppCode
                 using (var conn = _connectionFactory.CreateConnection())
                 {
                     conn.Open();
-                    string table = GetRecipeTableName();
                     if (r.id > 0)
                     {
-                        using (var cmd = new MySqlCommand($"UPDATE {table} SET recipe_name=@name, category_id=@catid, recipe_img=@img, description=@desc, price=@price WHERE id=@id", conn))
+                        using (var cmd = new MySqlCommand("UPDATE recipes SET recipe_name=@name, category_id=@catid, recipe_img=@img, description=@desc, price=@price WHERE id=@id", conn))
                         {
                             cmd.Parameters.AddWithValue("@id", r.id);
                             cmd.Parameters.AddWithValue("@name", r.recipe_name ?? "");
@@ -678,7 +578,7 @@ namespace FoodOutlet.AppCode
                     }
                     else
                     {
-                        using (var cmd = new MySqlCommand($"INSERT INTO {table} (recipe_name, category_id, recipe_img, description, price, created_at) VALUES (@name, @catid, @img, @desc, @price, NOW())", conn))
+                        using (var cmd = new MySqlCommand("INSERT INTO recipes (recipe_name, category_id, recipe_img, description, price, created_at) VALUES (@name, @catid, @img, @desc, @price, NOW())", conn))
                         {
                             cmd.Parameters.AddWithValue("@name", r.recipe_name ?? "");
                             cmd.Parameters.AddWithValue("@catid", r.category_id);
@@ -703,8 +603,7 @@ namespace FoodOutlet.AppCode
             using (var conn = _connectionFactory.CreateConnection())
             {
                 conn.Open();
-                string table = GetRecipeTableName();
-                string sql = $"SELECT id, recipe_name, category_id, recipe_img, description, price FROM {table} WHERE id=@id";
+                string sql = "SELECT id, recipe_name, category_id, recipe_img, description, price FROM recipes WHERE id=@id";
                 using (var cmd = new MySqlCommand(sql, conn))
                 {
                     cmd.Parameters.AddWithValue("@id", id);

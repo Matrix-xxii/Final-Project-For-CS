@@ -98,18 +98,6 @@ namespace FoodOutlet.Controllers
 
         #endregion
 
-        #region Debug
-
-        // temporary debugging helper: returns column names in registrations table
-        [HttpGet("api/registration_columns")]
-        public Dictionary<string, dynamic> GetRegistrationColumns()
-        {
-            var cols = _staff.GetRegistrationColumns();
-            return new Dictionary<string, dynamic> { { "columns", cols } };
-        }
-
-        #endregion
-
         #region Role
 
         [HttpGet("api/get_all_roles")]
@@ -185,24 +173,11 @@ namespace FoodOutlet.Controllers
             return Ok(new { imageUrl = relative });
         }
 
-        // debugging helper for resign table: name, columns, count, raw rows
-        [HttpGet("api/resign_debug")]
-        public Dictionary<string, dynamic> ResignDebug()
-        {
-            return new Dictionary<string, dynamic>
-            {
-                { "table", _staff.GetResignTableName() },
-                { "columns", _staff.GetResignColumns() },
-                { "count", _staff.GetResignCount() },
-                { "rows", _staff.GetRawResigns() }
-            };
-        }
-
         // an alias endpoint matching the new service method name
         [HttpGet("api/get_resigned_staff")]
         public Dictionary<string, dynamic> GetResignedStaff()
         {
-            return new Dictionary<string, dynamic> { { "records", _staff.GetResignedStaffs() } };
+            return new Dictionary<string, dynamic> { { "records", _staff.GetResignRecords() } };
         }
 
         [HttpPost("api/set_role")]
@@ -220,19 +195,27 @@ namespace FoodOutlet.Controllers
 
         #endregion
 
-        #region Inventory
-
-        #endregion
-
-        // recipe debug endpoint
+        // recipe count helper
         [HttpGet("api/recipe_debug")]
         public Dictionary<string, dynamic> RecipeDebug()
         {
             return new Dictionary<string, dynamic>
             {
-                { "table", _staff.GetRecipeTableName() },
-                { "columns", _staff.GetRecipeColumns() },
                 { "count", _staff.GetRecipeCount() }
+            };
+        }
+
+        // new: lightweight counts endpoint for dashboard
+        [HttpGet("api/get_counts")]
+        public Dictionary<string, dynamic> GetCounts()
+        {
+            return new Dictionary<string, dynamic>
+            {
+                { "staff_count", _staff.GetStaffCount() },
+                { "category_count", _staff.GetCategoryCount() },
+                { "recipe_count", _staff.GetRecipeCount() },
+                { "role_count", _staff.GetRoleCount() },
+                { "resign_count", _staff.GetResignCount() }
             };
         }
 

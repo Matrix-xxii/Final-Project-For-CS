@@ -26,7 +26,7 @@
         public int id { get; set; } = 0;
         public int registration_id { get; set; } = 0;
         public string reason { get; set; } = "";
-        public DateTime resign {  get; set; }
+        public DateTime? resign {  get; set; }
     }
 
     public class Message
