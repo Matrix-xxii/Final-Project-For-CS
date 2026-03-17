@@ -77,28 +77,7 @@ namespace FoodOutlet.Controllers
         }
         #endregion
 
-        #region Staff
-
-        [HttpPost("api/set_staff")]
-        public Models.Message SetStaff([FromBody] Models.Staff staff)
-        {
-            // if id present update, otherwise insert
-            if (staff.id > 0)
-                return _staff.UpdateStaff(staff);
-            else
-                return _staff.SetStaff(staff);
-        }
-
-        [HttpPost("api/delete_staff")]
-        public Models.Message DeleteStaff([FromBody] dynamic payload)
-        {
-            int id = payload.id;
-            return _staff.DeleteStaff(id);
-        }
-
-        #endregion
-
-        #region Role
+        #region GetAll
 
         [HttpGet("api/get_all_roles")]
         public Dictionary<string, dynamic> GetAllRoles()
@@ -113,7 +92,7 @@ namespace FoodOutlet.Controllers
         [HttpGet("api/get_all_staffs")]
         public Dictionary<string, dynamic> GetAllStaffs()
         {
-            return new Dictionary<string, dynamic> { { "staff", _staff.GetAllStaffs() } };      
+            return new Dictionary<string, dynamic> { { "staff", _staff.GetAllStaffs() } };
         }
 
         [HttpGet("api/get_all_categories")]
@@ -122,36 +101,30 @@ namespace FoodOutlet.Controllers
             return new Dictionary<string, dynamic> { { "categories", _staff.GetAllCategories() } };
         }
 
-        [HttpPost("api/set_category")]
-        public Models.Message SetCategory([FromBody] Models.Category cat)
-        {
-            return _staff.SetCategory(cat);
-        }
-
-        [HttpPost("api/delete_category")]
-        public Models.Message DeleteCategory([FromBody] dynamic payload)
-        {
-            int id = payload.id;
-            return _staff.DeleteCategory(id);
-        }
-
         [HttpGet("api/get_all_recipes")]
         public Dictionary<string, dynamic> GetAllRecipes()
         {
             return new Dictionary<string, dynamic> { { "recipes", _staff.GetAllRecipes() } };
         }
 
-        [HttpPost("api/set_recipe")]
-        public Models.Message SetRecipe([FromBody] Models.Recipe r)
+        #endregion
+
+        #region Get and Set
+
+        [HttpPost("api/set_staff")]
+        public Models.Message SetStaff([FromBody] Models.Staff staff)
         {
-            return _staff.SetRecipe(r);
+            // if id present update, otherwise insert
+            if (staff.id > 0)
+                return _staff.UpdateStaff(staff);
+            else
+                return _staff.SetStaff(staff);
         }
 
-        [HttpPost("api/delete_recipe")]
-        public Models.Message DeleteRecipe([FromBody] dynamic payload)
+        [HttpPost("api/set_category")]
+        public Models.Message SetCategory([FromBody] Models.Category cat)
         {
-            int id = payload.id;
-            return _staff.DeleteRecipe(id);
+            return _staff.SetCategory(cat);
         }
 
         [HttpPost("api/upload_recipe_image")]
@@ -173,17 +146,69 @@ namespace FoodOutlet.Controllers
             return Ok(new { imageUrl = relative });
         }
 
-        // an alias endpoint matching the new service method name
         [HttpGet("api/get_resigned_staff")]
         public Dictionary<string, dynamic> GetResignedStaff()
         {
             return new Dictionary<string, dynamic> { { "records", _staff.GetResignRecords() } };
         }
 
+        [HttpGet("api/get_all_inventories")]
+        public Dictionary<string, dynamic> GetAllInventories()
+        {
+            return new Dictionary<string, dynamic> { { "inventories", _staff.GetAllInventories() } };
+        }
+
+        [HttpGet("api/get_inventory_by_id")]
+        public Models.Inventory GetInventoryById(int id)
+        {
+            return _staff.GetInventoryById(id);
+        }
+
+        #endregion
+
+        #region Update and Set
+
+        [HttpPost("api/set_recipe")]
+        public Models.Message SetRecipe([FromBody] Models.Recipe r)
+        {
+            return _staff.SetRecipe(r);
+        }
+
         [HttpPost("api/set_role")]
         public Models.Message SetRole([FromBody] Models.Role role)
         {
             return _staff.SetRole(role);
+        }
+
+        [HttpPost("api/set_inventory")]
+        public Models.Message SetInventory([FromBody] Models.Inventory inv)
+        {
+            return _staff.SetInventory(inv);
+        }
+
+        #endregion
+
+        #region Delete
+
+        [HttpPost("api/delete_staff")]
+        public Models.Message DeleteStaff([FromBody] dynamic payload)
+        {
+            int id = payload.id;
+            return _staff.DeleteStaff(id);
+        }
+
+        [HttpPost("api/delete_category")]
+        public Models.Message DeleteCategory([FromBody] dynamic payload)
+        {
+            int id = payload.id;
+            return _staff.DeleteCategory(id);
+        }
+
+        [HttpPost("api/delete_recipe")]
+        public Models.Message DeleteRecipe([FromBody] dynamic payload)
+        {
+            int id = payload.id;
+            return _staff.DeleteRecipe(id);
         }
 
         [HttpPost("api/delete_role")]
@@ -193,19 +218,15 @@ namespace FoodOutlet.Controllers
             return _staff.DeleteRole(id);
         }
 
-        #endregion
-
-        // recipe count helper
-        [HttpGet("api/recipe_debug")]
-        public Dictionary<string, dynamic> RecipeDebug()
+        [HttpPost("api/delete_inventory")]
+        public Models.Message DeleteInventory([FromBody] dynamic payload)
         {
-            return new Dictionary<string, dynamic>
-            {
-                { "count", _staff.GetRecipeCount() }
-            };
+            int id = payload.id;
+            return _staff.DeleteInventory(id);
         }
 
-        // new: lightweight counts endpoint for dashboard
+        #endregion
+
         [HttpGet("api/get_counts")]
         public Dictionary<string, dynamic> GetCounts()
         {
@@ -218,6 +239,6 @@ namespace FoodOutlet.Controllers
                 { "resign_count", _staff.GetResignCount() }
             };
         }
-
+       
     }
 }
