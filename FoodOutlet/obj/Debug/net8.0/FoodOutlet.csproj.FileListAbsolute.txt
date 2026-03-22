@@ -211,3 +211,4 @@ D:\MLM\Final\FoodOutlet\obj\Debug\net8.0\refint\FoodOutlet.dll
 D:\MLM\Final\FoodOutlet\obj\Debug\net8.0\FoodOutlet.pdb
 D:\MLM\Final\FoodOutlet\obj\Debug\net8.0\FoodOutlet.genruntimeconfig.cache
 D:\MLM\Final\FoodOutlet\obj\Debug\net8.0\ref\FoodOutlet.dll
+D:\MLM\Final\FoodOutlet\bin\Debug\net8.0\QRCoder.dll

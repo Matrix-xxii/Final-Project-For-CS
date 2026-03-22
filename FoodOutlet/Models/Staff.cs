@@ -7,7 +7,7 @@
         public string email { get; set; } = "";
         public DateTime? birth_of_date { get; set; }
         public int role_id { get; set; } = 0;
-        public string  phone_no { get; set; } ="";
+        public string phone_no { get; set; } = "";
         public string address { get; set; } = "";
         public string password { get; set; } = "";
         public string status { get; set; } = "";
@@ -26,7 +26,7 @@
         public int id { get; set; } = 0;
         public int registration_id { get; set; } = 0;
         public string reason { get; set; } = "";
-        public DateTime? resign {  get; set; }
+        public DateTime? resign { get; set; }
     }
 
     public class Message

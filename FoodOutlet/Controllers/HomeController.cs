@@ -1,6 +1,6 @@
-using System.Diagnostics;
 using FoodOutlet.Models;
 using Microsoft.AspNetCore.Mvc;
+using System.Diagnostics;
 
 namespace FoodOutlet.Controllers
 {

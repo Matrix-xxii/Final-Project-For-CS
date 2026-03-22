@@ -143,3 +143,11 @@ CREATE TABLE Order_Detail (
     FOREIGN KEY (recipe_id) REFERENCES Recipes(id),
     FOREIGN KEY (status_id) REFERENCES Status(id)
 );
+
+-- schema-create-tables.sql
+CREATE TABLE `tables` (
+  `id` INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  `table_number` INT NOT NULL UNIQUE,
+  `qr_code` VARCHAR(512) NULL,
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

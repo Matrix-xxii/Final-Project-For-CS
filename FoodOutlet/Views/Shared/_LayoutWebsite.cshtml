@@ -5,48 +5,37 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Food Outlet</title>
 
-
     <!-- Font Awesome -->
     <link rel="stylesheet" href="~/plugins/fontawesome-free/css/all.min.css">
     <!-- Ionicons -->
     <link rel="stylesheet" href="https://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css">
-
     <!-- iCheck -->
     <link rel="stylesheet" href="~/plugins/icheck-bootstrap/icheck-bootstrap.min.css">
-
     <!-- Theme style -->
     <link rel="stylesheet" href="~/css/adminlte.min.css">
-
     <!-- overlayScrollbars -->
     <link rel="stylesheet" href="~/plugins/overlayScrollbars/css/OverlayScrollbars.min.css">
-
     <!-- Daterange picker -->
     <link rel="stylesheet" href="~/plugins/daterangepicker/daterangepicker.css">
-
     <!-- summernote -->
     <link rel="stylesheet" href="~/plugins/summernote/summernote-bs4.min.css">
 
     <!-- jQuery -->
     <script src="~/plugins/jquery/jquery.min.js"></script>
-
     <!-- jQuery UI 1.11.4 -->
     <script src="~/plugins/jquery-ui/jquery-ui.min.js"></script>
-
     <!-- daterangepicker -->
     <script src="~/plugins/moment/moment.min.js"></script>
-
     <script src="~/plugins/daterangepicker/daterangepicker.js"></script>
-
     <!-- Summernote -->
     <script src="~/plugins/summernote/summernote-bs4.min.js"></script>
-
     <!-- overlayScrollbars -->
     <script src="~/plugins/overlayScrollbars/js/jquery.overlayScrollbars.min.js"></script>
     <script src="~/js/adminlte.js"></script>
 
     <style>
-        .main-header, .main-footer{
-            margin-left:0px !important;
+        .main-header, .main-footer {
+            margin-left: 0px !important;
         }
 
         .main-header {
@@ -77,7 +66,7 @@
         }
 
         .btn-search:hover {
-                background-color: #fff;
+            background-color: #fff;
             color: #fff;
         }
 
@@ -93,8 +82,8 @@
         .text {
             color: #c0100b;
         }
-         
-        .transq{
+
+        .transq {
             opacity: 0.8;
         }
 
@@ -115,11 +104,47 @@
             margin: auto;
             position: relative;
             top: 57%;
-            left: -21%
+            left: -21%;
         }
 
+        /* Global image frame system */
+        .image-frame {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 3px solid #c0100b;
+            border-radius: 8px;
+            padding: 8px;
+            background-color: #f5f5f5;
+            overflow: hidden;
+        }
 
+        .image-frame--small {
+            width: 100px;
+            height: 100px;
+        }
 
+        .image-frame--medium {
+            width: 200px;
+            height: 200px;
+        }
+
+        .image-frame--large {
+            width: 300px;
+            height: 300px;
+        }
+
+        .image-frame--hero {
+            width: 100%;
+            height: 400px;
+        }
+
+        .image-frame img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: cover;
+            display: block;
+        }
     </style>
 </head>
 <body class="hold-transition sidebar-mini layout-fixed">
@@ -129,6 +154,7 @@
         <div class="preloader flex-column justify-content-center align-items-center">
             <img class="animation__shake" src="dist/img/AdminLTELogo.png" alt="AdminLTELogo" height="60" width="60">
         </div>
+
         <!-- Navbar -->
         <nav class="main-header navbar navbar-expand navbar-white navbar-light">
             <!-- Left navbar links -->
@@ -136,19 +162,18 @@
                 <div class="row">
                     <div class="col-ml-6">
                         <div class="logo_ed">
-                            <img src="~/img/pj_photo.jpg" class="logo">
+                            <img src="~/img/pj_photo.jpg" class="logo" alt="Food Outlet Logo">
                         </div>
                     </div>
-                    <div calass="col-ml-6"></div>
+                    <div class="col-ml-6"></div>
                 </div>
-                
             </div>
-            <div class="col-md-6"> 
+            <div class="col-md-6">
                 <form class="search-bar">
                     <div class="input-group">
-                        <input class="form-control search-box" type="search" id="txtTwitterSearch" placeholder="Search" aria-label="Search">
+                        <input class="form-control search-box" type="search" id="txtSearch" placeholder="Search" aria-label="Search">
                         <div class="input-group-append">
-                            <button class="btn btn-search" type="button" id="btnCustomSearchTwitter" onclick="callSequentially('Twitter')">
+                            <button class="btn btn-search" type="button" id="btnSearch">
                                 <i class="fas fa-search"></i>
                             </button>
                         </div>
@@ -159,18 +184,18 @@
                 <div class="row">
                     <div class="col-md-4"></div>
                     <div class="col-md-8">
-                        <ul class="navbar-nav" style="display: flex;justify-content:center">
-                            <li class="nav-item  d-sm-inline-block">
+                        <ul class="navbar-nav" style="display: flex; justify-content: center;">
+                            <li class="nav-item d-sm-inline-block">
                                 <a href="index3.html" class="nav-link">Home</a>
                             </li>
-                            <li class="nav-item  d-sm-inline-block">
+                            <li class="nav-item d-sm-inline-block">
                                 <a href="index3.html" class="nav-link">Filter</a>
                             </li>
                             <li class="nav-item dropdown show">
                                 <a class="nav-link" data-toggle="dropdown" href="#" aria-expanded="true">
                                     <i class="fas fa-bars fa-lg"></i>
                                 </a>
-                                <div class="dropdown-menu transq dropdown-menu-right show" style="left: inherit; right: 20%; margin-top:51%">
+                                <div class="dropdown-menu transq dropdown-menu-right show" style="left: inherit; right: 20%; margin-top: 51%;">
                                     <a href="#" class="dropdown-item text">
                                         <i class="fas fa-envelope mr-2 text"></i> Order History
                                     </a>
@@ -186,9 +211,10 @@
             </div>
         </nav>
         <!-- /.navbar -->
+
         <!-- Content Wrapper. Contains page content -->
         <div class="container2">
-            <main role="main" class="pb-3" style="background-color:#ffdf2a">
+            <main role="main" class="pb-3" style="background-color: #ffdf2a;">
                 @RenderBody()
             </main>
         </div>
@@ -206,10 +232,8 @@
         </aside>
         <!-- /.control-sidebar -->
     </div>
-    <script>
-        function dropdown_menu(){
-            
-        }
-    </script>
+
+    <script src="~/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
+    @RenderSection("Scripts", required: false)
 </body>
 </html>

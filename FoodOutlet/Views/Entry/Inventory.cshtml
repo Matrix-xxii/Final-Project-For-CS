@@ -1,4 +1,4 @@
-@{
+ï»¿@{
     ViewData["Title"] = "Inventory";
 }
 
@@ -6,12 +6,12 @@
     <div class="container-fluid"></div>
 </div>
 
-<section class="content">
+<section class="content" id="inventoryMain">
     <div class="container-fluid">
         <div class="card">
-            <div class="card-header d-flex align-items-center">
+            <div class="card-header d-flex justify-content-between align-items-center">
                 <h3 class="card-title font-weight-bold mb-0">Inventory(Stock Control)</h3>
-                <button class="btn btn-success ml-auto" onclick="openForm()">Add Stock</button>
+                <button class="btn btn-success ml-auto" id="btnAdd" onclick="openForm()">Add Stock</button>
             </div>
 
             <div class="card-body">
@@ -32,14 +32,17 @@
     </div>
 </section>
 
-<!-- Modal / form -->
-<div class="modal" tabindex="-1" role="dialog" id="inventoryModal" style="display:none;">
-  <div class="modal-dialog" role="document">
+<!-- Overlay shown when modal is open -->
+<div id="modalOverlay" style="display:none;"></div>
+
+<!-- Modal-->
+<div class="modal-custom" id="inventoryModal" aria-hidden="true" style="display:none;">
+  <div class="modal-dialog-custom" role="document">
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title">Inventory</h5>
-        <button type="button" class="close" onclick="closeForm()">
-          <span>&times;</span>
+        <button type="button" class="close" onclick="closeForm()" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
         </button>
       </div>
       <div class="modal-body">
@@ -63,6 +66,49 @@
   </div>
 </div>
 
+<style>
+    /* blur when modal open */
+    #inventoryMain.blurred {
+        filter: blur(4px);
+        pointer-events: none;
+        user-select: none;
+    }
+
+    /* overlay (dark translucent background) */
+    #modalOverlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.4);
+        z-index: 2000;
+    }
+
+    /* modal custom styling (centered, above overlay) */
+    .modal-custom {
+        position: fixed;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 2001;
+        max-width: 520px;
+        width: 90%;
+        display: block;
+    }
+
+    .modal-dialog-custom { max-width: 520px; margin: 0 auto; }
+
+    .modal-content {
+        background: #fff;
+        border-radius: 6px;
+        box-shadow: 0 6px 18px rgba(0,0,0,0.2);
+        overflow: hidden;
+    }
+
+    .modal-header, .modal-footer { padding: 12px 16px; }
+    .modal-body { padding: 16px; }
+
+    .img-inventory { max-width:80px; max-height:60px; border-radius: 4px; object-fit: cover; }
+</style>
+
 @section Scripts {
 <script>
     $(function(){
@@ -82,13 +128,40 @@
         });
     }
 
+    function getImageUrl(imagePath) {
+        // If image path is empty or null, return dash
+        if (!imagePath) {
+            return '';
+        }
+
+        // If already a data URL, use as-is
+        if (imagePath.startsWith('data:')) {
+            return `<img src="${imagePath}" class="img-inventory" alt="Recipe Image" />`;
+        }
+
+        // If it's a full URL, use as-is
+        if (imagePath.startsWith('http')) {
+            return `<img src="${imagePath}" class="img-inventory" alt="Recipe Image" />`;
+        }
+
+        // If it's just a filename or partial path, construct the full path
+        let fullPath = imagePath;
+        if (!imagePath.startsWith('/')) {
+            fullPath = '/uploads/recipes/' + imagePath;
+        } else if (!imagePath.includes('/uploads/recipes/')) {
+            fullPath = '/uploads/recipes/' + imagePath.split('/').pop();
+        }
+
+        return `<img src="${fullPath}" class="img-inventory" alt="Recipe Image" onerror="this.src=''" />`;
+    }
+
     function loadInventories(){
         $.get('/api/get_all_inventories', function(res){
             var rows = '';
             var list = res.inventories || [];
             list.forEach(function(item, idx){
                 var invId = item.inventory_id || 0;
-                var imgHtml = item.recipe_img ? '<img src="' + item.recipe_img + '" style="max-width:80px;max-height:60px;" />' : '';
+                var imgHtml = getImageUrl(item.recipe_img || '');
                 rows += '<tr>' +
                     '<td>' + (idx+1) + '</td>' +
                     '<td>' + imgHtml + '</td>' +
@@ -105,54 +178,79 @@
     }
 
     function openForm(){
+        $('#inventoryModal').data('mode', 'add');
         $('#invId').val(0);
         $('#ddlRecipe').val('');
         $('#txtQty').val(0);
-        $('#inventoryModal').show();
+        $('#btnSaveInventory').prop('disabled', false);
+        $('#modalOverlay').show();
+        $('#inventoryModal').show().attr('aria-hidden', 'false');
+        $('#inventoryMain').addClass('blurred');
     }
+    
     function closeForm(){
-        $('#inventoryModal').hide();
+        $('#modalOverlay').hide();
+        $('#inventoryModal').hide().attr('aria-hidden', 'true');
+        $('#inventoryMain').removeClass('blurred');
     }
 
-    // invId = inventory id (0 means none), recipeId and qty prepopulated from list
     function editInventory(invId, recipeId, qty){
+        $('#inventoryModal').data('mode', 'edit');
+        $('#invId').val(invId || 0);
+        $('#ddlRecipe').val(recipeId || '');
+        $('#txtQty').val(qty || 0);
+
+        $('#modalOverlay').show();
+        $('#inventoryModal').show().attr('aria-hidden', 'false');
+        $('#inventoryMain').addClass('blurred');
+
         if (!invId) {
-            // no inventory row exists yet — open form with provided recipe and qty
-            $('#invId').val(0);
-            $('#ddlRecipe').val(recipeId || '');
-            $('#txtQty').val(qty || 0);
-            $('#inventoryModal').show();
+            $('#btnSaveInventory').prop('disabled', false);
             return;
         }
 
-        // existing inventory row — fetch server copy
-        $.get('/api/get_inventory_by_id?id=' + invId, function(res){
-            if(!res) return alert('Not found');
-            $('#invId').val(res.id || 0);
-            $('#ddlRecipe').val(res.recipe_id || '');
-            $('#txtQty').val(res.stock_qty || 0);
-            $('#inventoryModal').show();
-        });
+        $('#btnSaveInventory').prop('disabled', true);
+        $.get('/api/get_inventory_by_id?id=' + invId)
+            .done(function(res){
+                if (res) {
+                    $('#invId').val(res.id || 0);
+                    $('#ddlRecipe').val(res.recipe_id || '');
+                    $('#txtQty').val(res.stock_qty || 0);
+                }
+            })
+            .always(function(){
+                $('#btnSaveInventory').prop('disabled', false);
+            });
     }
 
     function saveInventory(){
+        $('#btnSaveInventory').prop('disabled', true);
+
         var obj = {
             id: parseInt($('#invId').val()) || 0,
             recipe_id: parseInt($('#ddlRecipe').val() || 0),
             stock_qty: parseInt($('#txtQty').val() || 0)
         };
-        if(!obj.recipe_id){ alert('Choose recipe'); return; }
+
+        if(!obj.recipe_id){ alert('Choose recipe'); $('#btnSaveInventory').prop('disabled', false); return; }
+
         $.ajax({
             type: 'POST',
             url: '/api/set_inventory',
             data: JSON.stringify(obj),
             contentType: 'application/json; charset=utf-8'
         }).done(function(res){
-            if(res.message == 'Success' || res.message == 'Updated'){
+            if(res && (res.message == 'Success' || res.message == 'Updated')){
                 closeForm();
                 loadInventories();
-            } else alert(res.message);
-        }).fail(function(){ alert('Save failed'); });
+            } else {
+                alert(res ? res.message : 'Save failed');
+            }
+        }).fail(function(){
+            alert('Save failed');
+        }).always(function(){
+            $('#btnSaveInventory').prop('disabled', false);
+        });
     }
 
     function deleteInventory(id){
@@ -168,4 +266,3 @@
     }
 </script>
 }
-

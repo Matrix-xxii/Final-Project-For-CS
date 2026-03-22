@@ -54,6 +54,14 @@ build_metadata.AdditionalFiles.CssScope =
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcRW50cnlcU3RhZmZSZXNpZ25SZWNvcmRzLmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
 
+[D:/MLM/Final/FoodOutlet/Views/Entry/Table.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcRW50cnlcVGFibGUuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[D:/MLM/Final/FoodOutlet/Views/Entry/TableRegistration.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcRW50cnlcVGFibGVSZWdpc3RyYXRpb24uY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
 [D:/MLM/Final/FoodOutlet/Views/Home/Index.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcSG9tZVxJbmRleC5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 

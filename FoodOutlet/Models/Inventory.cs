@@ -2,7 +2,7 @@
 {
     public class Inventory
     {
-        public int id { get; set; } = 0; 
+        public int id { get; set; } = 0;
         public int recipe_id { get; set; } = 0;
         public int stock_qty { get; set; } = 0;
         public DateTime? created_at { get; set; }

@@ -1,0 +1,360 @@
+﻿@using Org.BouncyCastle.Asn1.Ocsp
+@model List<FoodOutlet.Models.Table>
+@{
+    ViewData["Title"] = "Table Registration";
+    var baseUrl = $"{Context.Request.Scheme}://{Context.Request.Host}";
+}
+@Html.AntiForgeryToken()
+
+<div class="content-header">
+    <div class="container-fluid">
+    </div>
+</div>
+
+<section class="content">
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Form Section -->
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title font-weight-bold">Table Registration</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-group row">
+                            <label class="col-md-3 col-form-label font-weight-bold">Table Number</label>
+                            <div class="col-md-5">
+                                <input id="txtTableNumber" type="text" class="form-control" placeholder="Enter table number">
+                                <small class="text-muted d-block mt-1">Numbers only (1-999)</small>
+                                <div id="validationSuccess" class="text-success small mt-2" style="display: none;">
+                                    <i class="fas fa-check-circle"></i> <span id="successMsg"></span>
+                                </div>
+                                <div id="validationError" class="text-danger small mt-2" style="display: none;">
+                                    <i class="fas fa-exclamation-circle"></i> <span id="errorMsg"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <button id="btnCreateTable" type="button" class="btn btn-success" onclick="createTable()" disabled>Create</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- List Section -->
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title font-weight-bold">Registered Tables (<span id="tableCount">0</span>)</h3>
+                    </div>
+                    <div class="card-body p-0">
+                        <table class="table table-striped mb-0" id="myTable">
+                            <thead>
+                                <tr>
+                                    <th style="width: 80px;">No.</th>
+                                    <th style="width: 200px;">Table #</th>
+                                    <th class="text-center mb-0" style="width: 120px;">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- QR Codes Grid -->
+        <div class="row mt-4">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title font-weight-bold">QR Codes</h3>
+                    </div>
+                    <div class="card-body">
+                        <div id="qrGrid" class="row g-4"></div>
+                        <div id="emptyQR" class="text-center text-muted" style="padding: 20px;">No QR codes available</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<style>
+    .qr-card {
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+        height: 100%;
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .qr-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+        border-color: #007bff;
+    }
+
+    .qr-card-image {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #f8f9fa;
+        padding: 15px;
+        border-bottom: 1px solid #eee;
+        min-height: 220px;
+    }
+
+    .qr-card-image img {
+        max-width: 180px;
+        max-height: 180px;
+        width: auto;
+        height: auto;
+        transition: transform 0.3s ease;
+    }
+
+    .qr-card:hover .qr-card-image img {
+        transform: scale(1.05);
+    }
+
+    .qr-card-footer {
+        padding: 12px 15px;
+        background: #f8f9fa;
+        text-align: center;
+        flex-shrink: 0;
+    }
+
+    .qr-card-footer h6 {
+        margin: 0 0 4px 0;
+        font-size: 14px;
+        font-weight: 600;
+        color: #333;
+    }
+
+    .qr-card-footer small {
+        font-size: 12px;
+        color: #999;
+    }
+
+    .qr-tooltip {
+        display: none;
+        position: absolute;
+        background: #333;
+        color: #fff;
+        padding: 8px 12px;
+        border-radius: 4px;
+        font-size: 12px;
+        white-space: nowrap;
+        z-index: 1000;
+        margin-top: 8px;
+    }
+
+    .qr-card:hover .qr-tooltip {
+        display: block;
+    }
+
+    #qrGrid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        gap: 1.5rem;
+    }
+
+    @@media (max-width: 768px) {
+        #qrGrid {
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+    }
+
+    .form-control.is-invalid {
+        border-color: #dc3545;
+    }
+
+    .form-control.is-valid {
+        border-color: #28a745;
+    }
+</style>
+
+<script>
+    var baseUrl = '@baseUrl';
+    var allTableNumbers = [];
+
+    $(function(){
+        getAllTables();
+    });
+
+    function getAllTables(){
+        $("#myTable tbody").empty();
+        $("#qrGrid").empty();
+
+        $.ajax({
+            type: "GET",
+            url: "/api/get_all_tables"
+        }).done(function(data){
+            if(data.tables && data.tables.length > 0) {
+                $("#tableCount").text(data.tables.length);
+                $("#emptyQR").hide();
+
+                // Store all table numbers for validation
+                allTableNumbers = data.tables.map(function(t) { return t.table_number; });
+
+                $.each(data.tables, function(i, v){
+                    var num = i + 1;
+                    var qrUrl = baseUrl + "/table/" + v.table_number;
+
+                    // Add to table list
+                    $("#myTable tbody").append(
+                        "<tr>" +
+                            "<td>" + num + "</td>" +
+                            "<td>" + v.table_number + "</td>" +
+                            "<td class='text-center'>" +
+                                "<button type='button' class='btn btn-danger btn-sm' onclick='deleteTable(" + v.id + ")'><i class='fas fa-trash'></i></button>" +
+                            "</td>" +
+                        "</tr>"
+                    );
+
+                    // Add QR to grid
+                    if(v.qr_code) {
+                        $("#qrGrid").append(
+                            "<div class='col-lg-3 col-md-4 col-sm-6' style='max-width: 90% !important'>" +
+                                "<div class='qr-card' onclick=\"window.location.href='" + qrUrl + "'\" title='Click to visit table menu'>" +
+                                    "<div class='qr-card-image'>" +
+                                        "<img src='" + v.qr_code + "' alt='QR Code for Table " + v.table_number + "' />" +
+                                    "</div>" +
+                                    "<div class='qr-card-footer'>" +
+                                        "<h6>Table #" + v.table_number + "</h6>" +
+                                        "<small>" + formatDate(v.created_at) + "</small>" +
+                                    "</div>" +
+                                    "<div class='qr-tooltip'>" + qrUrl + "</div>" +
+                                "</div>" +
+                            "</div>"
+                        );
+                    }
+                });
+            } else {
+                $("#tableCount").text("0");
+                $("#emptyQR").show();
+                allTableNumbers = [];
+            }
+        }).fail(function() {
+            console.error('Failed to load tables');
+        });
+    }
+
+    function formatDate(dateString) {
+        var date = new Date(dateString);
+        return date.toLocaleDateString();
+    }
+
+    function validateTableNumber(value) {
+        var num = parseInt(value);
+        var errorDiv = document.getElementById("validationError");
+        var successDiv = document.getElementById("validationSuccess");
+        var submitBtn = document.getElementById("btnCreateTable");
+        var inputField = document.getElementById("txtTableNumber");
+
+        // Hide both messages initially
+        errorDiv.style.display = "none";
+        successDiv.style.display = "none";
+        inputField.classList.remove("is-valid", "is-invalid");
+        submitBtn.disabled = true;
+
+        if (value === "") {
+            return false;
+        }
+
+        // Check if value is a valid number
+        if (isNaN(num) || num <= 0 || num > 999) {
+            document.getElementById("errorMsg").textContent = "Table number must be between 1 and 999";
+            errorDiv.style.display = "block";
+            inputField.classList.add("is-invalid");
+            return false;
+        }
+
+        // Check if table number already exists
+        if (allTableNumbers.includes(num)) {
+            document.getElementById("errorMsg").textContent = "Table #" + num + " already exists!";
+            errorDiv.style.display = "block";
+            inputField.classList.add("is-invalid");
+            return false;
+        }
+
+        // All validations passed
+        document.getElementById("successMsg").textContent = "Table #" + num + " is available";
+        successDiv.style.display = "block";
+        inputField.classList.add("is-valid");
+        submitBtn.disabled = false;
+        return true;
+    }
+
+    document.getElementById("txtTableNumber").addEventListener("input", function() {
+        this.value = this.value.replace(/[^0-9]/g, '');
+        validateTableNumber(this.value);
+    });
+
+    function createTable(){
+        var number = $("#txtTableNumber").val().trim();
+
+        if(number === ""){
+            alert('Table number cannot be empty');
+            return;
+        }
+
+        if(!validateTableNumber(number)){
+            alert('Please enter a valid table number');
+            return;
+        }
+
+        var formData = new FormData();
+        formData.append('table_number', parseInt(number));
+        formData.append('__RequestVerificationToken', getAntiForgeryToken());
+
+        $.ajax({
+            type: "POST",
+            url: "/Entry/CreateTable",
+            data: formData,
+            processData: false,
+            contentType: false
+        }).done(function(){
+            $("#txtTableNumber").val("");
+            document.getElementById("validationError").style.display = "none";
+            document.getElementById("validationSuccess").style.display = "none";
+            document.getElementById("txtTableNumber").classList.remove("is-valid", "is-invalid");
+            document.getElementById("btnCreateTable").disabled = true;
+            alert('Table created successfully');
+            getAllTables();
+        }).fail(function(xhr){
+            console.error('Error:', xhr.status, xhr.statusText);
+            alert('Error creating table');
+        });
+    }
+
+    function deleteTable(id){
+        if(!confirm('Are you sure you want to delete this table?')) return;
+
+        var formData = new FormData();
+        formData.append('id', id);
+        formData.append('__RequestVerificationToken', getAntiForgeryToken());
+
+        $.ajax({
+            type: "POST",
+            url: "/Entry/DeleteTable",
+            data: formData,
+            processData: false,
+            contentType: false
+        }).done(function(){
+            alert('Table deleted successfully');
+            getAllTables();
+        }).fail(function(xhr){
+            console.error('Error:', xhr.status, xhr.statusText);
+            alert('Failed to delete table');
+        });
+    }
+
+    function getAntiForgeryToken() {
+        return $('input[name="__RequestVerificationToken"]').val();
+    }
+</script>

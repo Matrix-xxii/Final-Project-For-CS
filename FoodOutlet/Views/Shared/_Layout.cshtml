@@ -15,6 +15,60 @@
     <link rel="stylesheet" href="~/plugins/summernote/summernote-bs4.min.css" />
     <link rel="stylesheet" href="~/css/adminlte.min.css" />
 
+    <!-- Global Image Frame Styles -->
+    <style>
+        /* Generic image frame container */
+        .img-frame {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #f5f5f5;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        /* Predefined frame sizes */
+        .img-frame-sm { width: 40px; height: 40px; }
+        .img-frame-md { width: 60px; height: 60px; }
+        .img-frame-lg { width: 100px; height: 100px; }
+        .img-frame-xl { width: 150px; height: 150px; }
+
+        /* Recipe/Inventory list frame (80×60) */
+        .img-frame-recipe { width: 80px; height: 60px; }
+
+        /* Staff profile frame (100×100) */
+        .img-frame-profile { width: 100px; height: 100px; }
+
+        /* Image inside frame always fills the frame */
+        .img-frame img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        /* Placeholder text in empty frames */
+        .img-frame .img-placeholder {
+            font-size: 12px;
+            color: #999;
+            font-weight: 500;
+        }
+
+        /* Loading state */
+        .img-frame.loading {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s infinite;
+        }
+
+        @@keyframes loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+    </style>
+
     <script src="~/plugins/jquery/jquery.min.js"></script>
     <script src="~/plugins/jquery-ui/jquery-ui.min.js"></script>
     <script>
@@ -35,6 +89,96 @@
     <script src="~/plugins/overlayScrollbars/js/jquery.overlayScrollbars.min.js"></script>
 
     <script src="~/js/adminlte.min.js"></script>
+
+    <!-- Global Image Utility Functions -->
+    <script>
+        // Global image frame utility
+        window.ImageFrameUtil = {
+            // Build image frame HTML with proper path resolution
+            buildFrame: function(imagePath, frameClass = 'img-frame-md', altText = 'Image') {
+                // Handle empty/null path
+                if (!imagePath) {
+                    return '<div class="img-frame ' + frameClass + '"><span class="img-placeholder">-</span></div>';
+                }
+
+                // Get full URL for image
+                const fullPath = this.getFullPath(imagePath);
+
+                // Return frame with image
+                return `<div class="img-frame ${frameClass}"><img src="${fullPath}" alt="${altText}" onerror="this.onerror=null; this.src='/img/placeholder.png'" /></div>`;
+            },
+
+            // Resolve image path to full URL
+            getFullPath: function(imagePath) {
+                if (!imagePath) return '/img/placeholder.png';
+
+                // Already a full URL or data URL
+                if (imagePath.startsWith('http') || imagePath.startsWith('data:')) {
+                    return imagePath;
+                }
+
+                // Already has full path
+                if (imagePath.startsWith('/')) {
+                    return imagePath;
+                }
+
+                // Determine correct folder based on path hints
+                if (imagePath.includes('recipe') || imagePath.includes('uploads')) {
+                    return '/uploads/recipes/' + imagePath.split('/').pop();
+                }
+
+                if (imagePath.includes('staff') || imagePath.includes('profile')) {
+                    return '/uploads/staff/' + imagePath.split('/').pop();
+                }
+
+                // Default to uploads
+                return '/uploads/recipes/' + imagePath;
+            },
+
+            // Get HTML for use in DataTables or direct insertion
+            getFrameHtml: function(imagePath, frameClass = 'img-frame-md') {
+                return this.buildFrame(imagePath, frameClass);
+            },
+
+            // Enhanced path resolver with fallback handling
+            normalizeImagePath: function(imagePath) {
+                if (!imagePath || imagePath.trim() === '') {
+                    return null;
+                }
+
+                imagePath = imagePath.trim();
+
+                // Already correct format
+                if (imagePath.startsWith('/uploads/recipes/')) {
+                    return imagePath;
+                }
+
+                // Fix legacy paths
+                if (imagePath.startsWith('/img/recipes/')) {
+                    return imagePath.replace('/img/recipes/', '/uploads/recipes/');
+                }
+
+                // Just a filename
+                if (!imagePath.includes('/')) {
+                    return '/uploads/recipes/' + imagePath;
+                }
+
+                // Try as-is
+                return imagePath;
+            },
+
+            // Safe image rendering with fallback
+            renderImage: function(imagePath, altText, className) {
+                var normalizedPath = this.normalizeImagePath(imagePath);
+                
+                if (!normalizedPath) {
+                    return '<div class="img-placeholder">-</div>';
+                }
+
+                return '<img src="' + normalizedPath + '" alt="' + (altText || 'Image') + '" class="' + (className || 'recipe-img') + '" onerror="this.src=\'/img/placeholder.png\'" />';
+            }
+        };
+    </script>
 </head>
 <body class="hold-transition sidebar-mini layout-fixed">
     <div class="wrapper">
@@ -53,64 +197,6 @@
             </ul>
             <!-- Right navbar links -->
             <ul class="navbar-nav ml-auto">
-                <!-- Messages Dropdown Menu -->
-                <li class="nav-item dropdown">
-                    <a class="nav-link" data-toggle="dropdown" href="#">
-                        <i class="far fa-comments"></i>
-                        <span class="badge badge-danger navbar-badge">3</span>
-                    </a>
-                    <div class="dropdown-menu dropdown-menu-lg dropdown-menu-right">
-                        <a href="#" class="dropdown-item">
-                            <!-- Message Start -->
-                            <div class="media">
-                                <img src="~/img/user1-128x128.jpg" alt="User Avatar" class="img-size-50 mr-3 img-circle">
-                                <div class="media-body">
-                                    <h3 class="dropdown-item-title">
-                                        Brad Diesel
-                                        <span class="float-right text-sm text-danger"><i class="fas fa-star"></i></span>
-                                    </h3>
-                                    <p class="text-sm">Call me whenever you can...</p>
-                                    <p class="text-sm text-muted"><i class="far fa-clock mr-1"></i> 4 Hours Ago</p>
-                                </div>
-                            </div>
-                            <!-- Message End -->
-                        </a>
-                        <div class="dropdown-divider"></div>
-                        <a href="#" class="dropdown-item">
-                            <!-- Message Start -->
-                            <div class="media">
-                                <img src="~/img/user8-128x128.jpg" alt="User Avatar" class="img-size-50 img-circle mr-3">
-                                <div class="media-body">
-                                    <h3 class="dropdown-item-title">
-                                        John Pierce
-                                        <span class="float-right text-sm text-muted"><i class="fas fa-star"></i></span>
-                                    </h3>
-                                    <p class="text-sm">I got your message bro</p>
-                                    <p class="text-sm text-muted"><i class="far fa-clock mr-1"></i> 4 Hours Ago</p>
-                                </div>
-                            </div>
-                            <!-- Message End -->
-                        </a>
-                        <div class="dropdown-divider"></div>
-                        <a href="#" class="dropdown-item">
-                            <!-- Message Start -->
-                            <div class="media">
-                                <img src="~/img/user3-128x128.jpg" alt="User Avatar" class="img-size-50 img-circle mr-3">
-                                <div class="media-body">
-                                    <h3 class="dropdown-item-title">
-                                        Nora Silvester
-                                        <span class="float-right text-sm text-warning"><i class="fas fa-star"></i></span>
-                                    </h3>
-                                    <p class="text-sm">The subject goes here</p>
-                                    <p class="text-sm text-muted"><i class="far fa-clock mr-1"></i> 4 Hours Ago</p>
-                                </div>
-                            </div>
-                            <!-- Message End -->
-                        </a>
-                        <div class="dropdown-divider"></div>
-                        <a href="#" class="dropdown-item dropdown-footer">See All Messages</a>
-                    </div>
-                </li>
                 <!-- Notifications Dropdown Menu -->
                 <li class="nav-item dropdown">
                     <a class="nav-link" data-toggle="dropdown" href="#">
@@ -221,7 +307,7 @@
                                 </li>
                                 <li class="nav-item">
                                     <a asp-controller="Entry" asp-action="Recipe" class="nav-link nav-link-treeview">
-                                        <i class="fas fa-utensils"></i>
+                                        <i class="fas fa-hamburger"></i>
                                         <p>Recipes</p>
                                     </a>
                                 </li>
@@ -232,26 +318,31 @@
                                     </a>
                                 </li>
                                 <li class="nav-item">
-                                    <a asp-controller="Entry" asp-action="Inventory" class="nav-link nav-link-treeview">
-                                    <i class="fas fa-utensils"></i>
-                                    <p>Inventory</p>
-                                </a>
+                                    
                                 </li>
                             </ul>
                         </li>
                         
+                        <li class="nav-item">
+                            <a asp-controller="Entry" asp-action="Inventory" class="nav-link nav-link-treeview">
+                                <i class="nav-icon fas fa-columns"></i>
+                                <p>Inventory</p>
+                            </a>
+                        </li>
+
+                        <li class="nav-item">
+                            <a asp-controller="Entry" asp-action="TableRegistration" class="nav-link nav-link-treeview">
+                                <i class="nav-icon fas fa-chair"></i>
+                                <p>TableRegistration</p>
+                            </a>
+                        </li>
+
                         <li class="nav-item has-treeview">
                             <a href="#" class="nav-link">
                                 <i class="nav-icon fas fa-tachometer-alt"></i>
                                 <p>Entry <i class="fas fa-angle-left right"></i></p>
                             </a>
                             <ul class="nav nav-treeview">
-                                @* <li class="nav-item">
-                                    <a asp-controller="Entry" asp-action="Registration" class="nav-link nav-link-treeview">
-                                        <i class="fas fa-solid fa-address-card"></i>
-                                        <p>User Registration</p>
-                                    </a>
-                                </li> *@
                                 <li class="nav-item">
                                     <a asp-controller="Admin" asp-action="UserAccountList" class="nav-link nav-link-treeview">
                                         <i class="fas fa-user"></i>
@@ -259,15 +350,6 @@
                                     </a>
                                 </li>
                             </ul>
-                        </li>
-
-                        <li class="nav-item">
-                            <a href="pages/kanban.html" class="nav-link">
-                                <i class="nav-icon fas fa-columns"></i>
-                                <p>
-                                    Stock Control
-                                </p>
-                            </a>
                         </li>
                     </ul>
                 </nav>
@@ -299,8 +381,13 @@
     
 
     <script>
-        // navigation highlight helper
-        (function () {
+        // Navigation highlight - run only once on document load
+        var navigationHighlighted = false;
+        
+        $(document).ready(function() {
+            if (navigationHighlighted) return;
+            navigationHighlighted = true;
+            
             var url = window.location.href.split('?')[0];
             $('.nav-sidebar a').filter(function () {
                 return this.href === url;
@@ -311,7 +398,7 @@
                 $(this).addClass('active');
                 $(this).parents('.has-treeview').addClass('menu-open').children('a.nav-link').addClass('active');
             });
-        })();
+        });
     </script>
 
     @* Render per-page scripts if present *@

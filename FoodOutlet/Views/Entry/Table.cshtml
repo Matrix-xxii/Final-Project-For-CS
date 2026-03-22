@@ -1,0 +1,98 @@
+﻿@model List<dynamic>
+@{
+    Layout = "~/Views/Shared/_LayoutWebsite.cshtml";
+    var tableNumber = ViewData["TableNumber"] ?? 0;
+}
+
+<div class="container-fluid p-0 table-page-container">
+    <!-- Header -->
+    <div class="table-page-header">
+        <div class="row align-items-center">
+            <div class="col-md-4">
+                <h3 class="text-white mb-0">🍽️ Table @tableNumber</h3>
+            </div>
+            <div class="col-md-4">
+                <input type="search" class="form-control rounded-pill" placeholder="Search items..." id="searchInput">
+            </div>
+            <div class="col-md-4 text-end">
+                <button class="btn btn-warning rounded-pill me-2" type="button">Filter</button>
+                <button class="btn btn-light rounded-pill" type="button">Menu</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Menu Items Grid -->
+    <div class="p-4">
+        <div class="row g-4" id="itemsGrid">
+            @foreach(var item in Model)
+            {
+                <div class="col-lg-6 col-md-12 menu-item" data-item-name="@item.recipe_name @item.category_name">
+                    <div class="card rounded-4 shadow-sm" style="border: none; overflow: hidden;">
+                        <div class="row g-0">
+                            <div class="col-md-4">
+                                <div class="img-frame img-frame-table">
+                                    <img src="@item.recipe_img" alt="@item.recipe_name" class="img-fluid">
+                                </div>
+                            </div>
+                            <div class="col-md-8">
+                                <div class="card-body">
+                                    <h5 class="card-title text-dark">
+                                        @item.recipe_name
+                                        <button class="btn btn-sm btn-dark rounded-circle ms-2" type="button" style="width: 30px; height: 30px; padding: 0; display: flex; align-items: center; justify-content: center;">
+                                            <i class="fas fa-info"></i>
+                                        </button>
+                                    </h5>
+                                    <p class="card-text text-muted small">@item.category_name</p>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span class="fw-bold text-dark">$@item.price</span>
+                                        <div class="btn-group" role="group">
+                                            <button type="button" class="btn btn-dark btn-sm qty-minus">−</button>
+                                            <input type="text" class="form-control form-control-sm text-center qty-input" value="0">
+                                            <button type="button" class="btn btn-dark btn-sm qty-plus">+</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-footer bg-white border-0 d-flex gap-2">
+                            <button class="btn btn-light rounded-pill flex-grow-1 btn-add-cart" type="button">Add To Cart</button>
+                            <button class="btn btn-light rounded-pill flex-grow-1 btn-order-now" type="button">Order Now</button>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+        @if(Model.Count == 0)
+        {
+            <div class="text-center text-muted p-5">
+                <p>No items available</p>
+            </div>
+        }
+    </div>
+</div>
+
+<script>
+    document.getElementById('searchInput').addEventListener('keyup', function(e) {
+        var search = e.target.value.toLowerCase().trim();
+        var items = document.querySelectorAll('.menu-item');
+        items.forEach(function(item) {
+            var name = item.getAttribute('data-item-name').toLowerCase();
+            item.classList.toggle('hidden', search && !name.includes(search));
+        });
+    });
+
+    document.querySelectorAll('.qty-plus').forEach(btn => btn.addEventListener('click', function() {
+        var input = this.closest('.btn-group').querySelector('.qty-input');
+        input.value = parseInt(input.value || 0) + 1;
+    }));
+
+    document.querySelectorAll('.qty-minus').forEach(btn => btn.addEventListener('click', function() {
+        var input = this.closest('.btn-group').querySelector('.qty-input');
+        var current = parseInt(input.value || 0);
+        if(current > 0) input.value = current - 1;
+    }));
+
+    document.querySelectorAll('.btn-add-cart, .btn-order-now').forEach(btn => btn.addEventListener('click', function() {
+        alert(this.classList.contains('btn-add-cart') ? 'Added to cart' : 'Order placed');
+    }));
+</script>

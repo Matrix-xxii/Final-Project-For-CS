@@ -54,6 +54,10 @@
             "MySql.Data": {
               "target": "Package",
               "version": "[9.5.0, )"
+            },
+            "QRCoder": {
+              "target": "Package",
+              "version": "[1.4.3, )"
             }
           },
           "imports": [

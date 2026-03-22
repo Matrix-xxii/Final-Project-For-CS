@@ -54,7 +54,6 @@ wwwroot\img\prod-2.jpg
 wwwroot\img\prod-3.jpg
 wwwroot\img\prod-4.jpg
 wwwroot\img\prod-5.jpg
-wwwroot\img\recipes\ab484037-84cb-4999-be8a-68b09ff3a4c1.jpg
 wwwroot\img\user1-128x128.jpg
 wwwroot\img\user2-160x160.jpg
 wwwroot\img\user3-128x128.jpg
@@ -2056,3 +2055,11 @@ wwwroot\plugins\uplot\uPlot.esm.js
 wwwroot\plugins\uplot\uPlot.iife.js
 wwwroot\plugins\uplot\uPlot.iife.min.js
 wwwroot\plugins\uplot\uPlot.min.css
+wwwroot\tableQR\19301d8a_table3.jpg
+wwwroot\tableQR\2c2e5780_table6.jpg
+wwwroot\tableQR\7c1d3741_table2.jpg
+wwwroot\tableQR\bc37740d_table5.jpg
+wwwroot\tableQR\e8a51ffb_table4.jpg
+wwwroot\uploads\qrcodes\9420c3337a20415985507ee352d4ab94.png
+wwwroot\uploads\recipes\ab484037-84cb-4999-be8a-68b09ff3a4c1.jpg
+wwwroot\uploads\recipes\e008da6d-b223-4f37-b554-dcbdecc05623.jpg

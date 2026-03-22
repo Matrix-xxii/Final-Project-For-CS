@@ -1,5 +1,4 @@
 using FoodOutlet.AppCode;
-using FoodOutlet.Services;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -28,10 +27,12 @@ app.UseRouting();
 
 app.UseAuthorization();
 
+// Map controller routes with attribute routing (for [HttpGet("table/{tableNumber}")])
+app.MapControllers();
+
+// Map default route
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
-
-app.MapControllers();
 
 app.Run();
