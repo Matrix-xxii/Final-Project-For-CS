@@ -59,6 +59,12 @@
                             <tbody></tbody>
                         </table>
                     </div>
+                    <!-- Pagination Controls -->
+                    <div class="card-footer p-0" id="paginationContainer" style="display: none;">
+                        <nav aria-label="Table pagination">
+                            <ul class="pagination mb-0 justify-content-center" id="tablePagination" style="margin: 10px 0;"></ul>
+                        </nav>
+                    </div>
                 </div>
             </div>
         </div>
@@ -176,48 +182,58 @@
     .form-control.is-valid {
         border-color: #28a745;
     }
+
+    .pagination {
+        flex-wrap: wrap;
+    }
+
+    .pagination .page-link {
+        cursor: pointer;
+    }
+
+    .pagination .page-item.disabled .page-link {
+        cursor: not-allowed;
+        opacity: 0.5;
+    }
 </style>
 
 <script>
-    var baseUrl = '@baseUrl';
+    var baseUrl = "@baseUrl";
     var allTableNumbers = [];
+    var allTables = [];
+    const itemsPerPage = 10;
+    let currentPage = 1;
 
-    $(function(){
+    $(function () {
         getAllTables();
     });
 
-    function getAllTables(){
+    function getAllTables() {
         $("#myTable tbody").empty();
         $("#qrGrid").empty();
 
         $.ajax({
             type: "GET",
             url: "/api/get_all_tables"
-        }).done(function(data){
-            if(data.tables && data.tables.length > 0) {
+        }).done(function (data) {
+            if (data.tables && data.tables.length > 0) {
                 $("#tableCount").text(data.tables.length);
                 $("#emptyQR").hide();
 
-                // Store all table numbers for validation
-                allTableNumbers = data.tables.map(function(t) { return t.table_number; });
+                // Store all table data for pagination
+                allTables = data.tables;
+                allTableNumbers = data.tables.map(function (t) { return t.table_number; });
 
-                $.each(data.tables, function(i, v){
-                    var num = i + 1;
+                // Render first page of tables
+                renderTablePage(1);
+                renderPagination();
+
+                // Render all QR codes (no pagination)
+                $.each(data.tables, function (i, v) {
                     var qrUrl = baseUrl + "/table/" + v.table_number;
 
-                    // Add to table list
-                    $("#myTable tbody").append(
-                        "<tr>" +
-                            "<td>" + num + "</td>" +
-                            "<td>" + v.table_number + "</td>" +
-                            "<td class='text-center'>" +
-                                "<button type='button' class='btn btn-danger btn-sm' onclick='deleteTable(" + v.id + ")'><i class='fas fa-trash'></i></button>" +
-                            "</td>" +
-                        "</tr>"
-                    );
-
                     // Add QR to grid
-                    if(v.qr_code) {
+                    if (v.qr_code) {
                         $("#qrGrid").append(
                             "<div class='col-lg-3 col-md-4 col-sm-6' style='max-width: 90% !important'>" +
                                 "<div class='qr-card' onclick=\"window.location.href='" + qrUrl + "'\" title='Click to visit table menu'>" +
@@ -238,10 +254,83 @@
                 $("#tableCount").text("0");
                 $("#emptyQR").show();
                 allTableNumbers = [];
+                allTables = [];
+                $("#paginationContainer").hide();
             }
-        }).fail(function() {
+        }).fail(function () {
             console.error('Failed to load tables');
         });
+    }
+
+    function renderTablePage(pageNum) {
+        currentPage = pageNum;
+        const startIdx = (pageNum - 1) * itemsPerPage;
+        const endIdx = startIdx + itemsPerPage;
+        const pageItems = allTables.slice(startIdx, endIdx);
+
+        $("#myTable tbody").empty();
+
+        $.each(pageItems, function (i, v) {
+            var rowNum = startIdx + i + 1;
+
+            $("#myTable tbody").append(
+                "<tr>" +
+                    "<td>" + rowNum + "</td>" +
+                    "<td>" + v.table_number + "</td>" +
+                    "<td class='text-center'>" +
+                        "<button type='button' class='btn btn-danger btn-sm' onclick='deleteTable(" + v.id + ")'><i class='fas fa-trash'></i></button>" +
+                    "</td>" +
+                "</tr>"
+            );
+        });
+    }
+
+    function renderPagination() {
+        const totalPages = Math.ceil(allTables.length / itemsPerPage);
+        const paginationContainer = $("#tablePagination");
+        paginationContainer.empty();
+
+        // Only show pagination if there are more than 10 items
+        if (allTables.length <= itemsPerPage) {
+            $("#paginationContainer").hide();
+            return;
+        }
+
+        $("#paginationContainer").show();
+
+        // Previous button
+        const prevClass = currentPage === 1 ? 'disabled' : '';
+        paginationContainer.append(
+            "<li class='page-item " + prevClass + "'>" +
+                "<a class='page-link' href='#' onclick='goToPage(" + (currentPage - 1) + "); return false;'>Previous</a>" +
+            "</li>"
+        );
+
+        // Page numbers
+        for (let i = 1; i <= totalPages; i++) {
+            const activeClass = i === currentPage ? 'active' : '';
+            paginationContainer.append(
+                "<li class='page-item " + activeClass + "'>" +
+                    "<a class='page-link' href='#' onclick='goToPage(" + i + "); return false;'>" + i + "</a>" +
+                "</li>"
+            );
+        }
+
+        // Next button
+        const nextClass = currentPage === totalPages ? 'disabled' : '';
+        paginationContainer.append(
+            "<li class='page-item " + nextClass + "'>" +
+                "<a class='page-link' href='#' onclick='goToPage(" + (currentPage + 1) + "); return false;'>Next</a>" +
+            "</li>"
+        );
+    }
+
+    function goToPage(pageNum) {
+        const totalPages = Math.ceil(allTables.length / itemsPerPage);
+        if (pageNum >= 1 && pageNum <= totalPages) {
+            renderTablePage(pageNum);
+            renderPagination();
+        }
     }
 
     function formatDate(dateString) {
@@ -290,7 +379,7 @@
         return true;
     }
 
-    document.getElementById("txtTableNumber").addEventListener("input", function() {
+    document.getElementById("txtTableNumber").addEventListener("input", function () {
         this.value = this.value.replace(/[^0-9]/g, '');
         validateTableNumber(this.value);
     });

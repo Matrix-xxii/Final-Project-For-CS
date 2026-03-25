@@ -4,7 +4,6 @@
     ViewData["Title"] = isEdit ? Model.name : "Registration";
 }
 
-
 <div class="content-header">
     <div class="container-fluid">
     </div>
@@ -22,6 +21,7 @@
                     </div>
                     <form class="form-horizontal">
                         <input type="hidden" id="hdnId" value="@(Model?.id ?? 0)" />
+                        <input type="hidden" id="hdnPhoto" value="@(Model?.photo ?? "")" />
                         <div class="card-block">
                             <div class="row">
 
@@ -35,14 +35,15 @@
                                                    onchange="encodeImgtoBase64(this);"
                                                    type="file" accept="image/jpeg, image/png">
 
-                                            <img id="previewing" name="previewing" src="~/img/dummy_img.png"
-                                                 style="margin-top:20px; height:128px; width:128px;cursor:pointer;object-fit:cover"
+                                            <img id="previewing" name="previewing" 
+                                                 src="@(string.IsNullOrEmpty(Model?.photo) ? "/img/dummy_img.png" : Model.photo)"
+                                                 style="margin-top:20px; height:128px; width:128px;cursor:pointer;object-fit:cover;border-radius:50%;border:2px solid #ddd;"
                                                  onclick="HandleBrowseClick('input-image-hidden');"
                                                  title="Click to Change the Photo."
-                                                 class="profile-user-img img-responsive img-circle"
+                                                 class="profile-user-img img-responsive"
                                                  alt="User profile picture">
 
-                                            <div><center>Photo</center></div>
+                                            <div style="margin-top: 10px;"><strong>Photo</strong></div>
                                         </div>
                                     </div>
                                     <div class="form-group row">
@@ -62,7 +63,7 @@
                                         <div class="col-md-8">
                                             <select class="form-select form-control" id="cboStaffRole" required>
                                                 <option value="">Choose</option>
-                                            </select> <!-- value will be set after roles loaded -->
+                                            </select>
                                         </div>
                                     </div>
                                     <div class="form-group row">
@@ -96,16 +97,16 @@
                                         <div class="col-md-9 offset-md-3 text-right">
                                             @if (isEdit)
                                             {
-                                                <button id="btnSave" class="btn btn-success" onclick="saveStaff()">
-                                                    <i class="fas fa-check"></i>Update
+                                                <button type="button" id="btnSave" class="btn btn-success" onclick="saveStaff()">
+                                                    <i class="fas fa-check"></i> Update
                                                 </button>
                                                 <a class="btn btn-secondary ml-2" asp-controller="Entry" asp-action="StaffList">Back to Staff List</a>
                                                 
                                             }
                                             else
                                             {
-                                                <button id="btnSave" class="btn btn-success" onclick="saveRsaveStaffecipe()">
-                                                    <i class="fas fa-check"></i>Create
+                                                <button type="button" id="btnSave" class="btn btn-success" onclick="saveStaff()">
+                                                    <i class="fas fa-check"></i> Create
                                                 </button>
                                                 <a class="btn btn-secondary ml-2" asp-controller="Entry" asp-action="Registration">Clear</a>
                                             }
@@ -120,13 +121,12 @@
         </div>
     </div>
 </section>
+
 <script>
     $(document).ready(function () {
-        // start loader using same pattern as other pages
         loadRoles();
     });
 
-    // Robust loader copied from prior implementation but improved for debugging and resilience.
     function loadRoles() {
         console.log('loadRoles: requesting /api/get_all_roles');
         $.ajax({
@@ -145,19 +145,16 @@
 
                 if (Array.isArray(list) && list.length) {
                     $.each(list, function (i, role) {
-                        // be defensive in property names
                         var id = role.id ?? role.role_id ?? role.Id;
                         var name = role.role_name ?? role.name ?? role.RoleName ?? '';
                         $sel.append($('<option>').val(id).text(name));
                     });
 
-                    // if editing, pick existing role
                     @if(Model != null && Model.role_id > 0){
                         <text>console.log('loadRoles: selecting role @Model.role_id'); $sel.val('@Model.role_id');</text>
                     }
                 } else {
                     console.warn('loadRoles: no roles returned', list);
-                    // still attempt to select server-provided value if present
                     @if(Model != null && Model.role_id > 0){
                         <text>console.log('loadRoles: fallback select role @Model.role_id'); $sel.val('@Model.role_id');</text>
                     }
@@ -169,17 +166,31 @@
         .fail(function (xhr, status, err) {
             console.error('loadRoles: AJAX failed', status, err, xhr.responseText);
             alert("Cannot load roles");
-            // attempt fallback selection of server-side rendered option (if any)
             @if(Model != null && Model.role_id > 0){
                 <text>$("#cboStaffRole").val("@Model.role_id");</text>
             }
         });
     }
 
+    function encodeImgtoBase64(element) {
+        var file = element.files[0];
+        var reader = new FileReader();
+        reader.onloadend = function () {
+            $("#hdnPhoto").val(reader.result);
+            $("#previewing").attr("src", reader.result);
+        };
+        if (file) {
+            reader.readAsDataURL(file);
+        }
+    }
+
+    function HandleBrowseClick(id) {
+        var fileInput = document.getElementById(id);
+        fileInput.click();
+    }
+
     $("#txtPhone").on("input", function () {
-
         let phone = $(this).val();
-
         phone = phone.replace(/[^0-9]/g, '');
         $(this).val(phone);
 
@@ -188,11 +199,9 @@
         } else {
             $("#phoneError").text("");
         }
-
     });
 
     function saveStaff(){
-
         var obj = {
             id: parseInt($("#hdnId").val()),
             name: $("#txtStaffName").val(),
@@ -201,6 +210,7 @@
             password: $("#txtPassword").val(),
             phone_no: $("#txtPhone").val(),
             address: $("#txtAddress").val(),
+            photo: $("#hdnPhoto").val(),
             role_id: parseInt($("#cboStaffRole").val() || 0)
         };
         console.log('saveStaff: payload', obj);
@@ -212,7 +222,6 @@
             contentType: "application/json; charset=utf-8",
             dataType: "json"
         }).done(function(res){
-
             if(res.message == "Success"){
                 alert("Saved");
                 clearForm();
@@ -220,22 +229,22 @@
             }else{
                 alert(res.message);
             }
-
         }).fail(function(xhr, status, err){
             console.error('saveStaff: failed', status, err, xhr.responseText);
             alert('Save failed');
         });
     }
-    function clearForm() {
 
+    function clearForm() {
         $("#hdnId").val(0);
+        $("#hdnPhoto").val("");
         $("#txtStaffName").val("");
         $("#txtEmail").val("");
         $("#txtBirthDate").val("");
         $("#txtPassword").val("");
-        $("#txtPassword").val("");
         $("#cboStaffRole").val("");
         $("#txtAddress").val("");
         $("#txtPhone").val("");
+        $("#previewing").attr("src", "/img/dummy_img.png");
     }
 </script>

@@ -56,9 +56,11 @@ namespace FoodOutlet.AppCode
             {
                 conn.Open();
                 string query = @"
-                    SELECT r.id, r.registration_name AS name, r.email, r.phone_no, r.address, r.role_id,
+                    SELECT r.id, r.registration_name AS name, r.email, r.phone_no, r.address, r.role_id, r.photo,
+                           ro.role_name,
                            CASE WHEN rs.registration_id IS NULL THEN 'In Service' ELSE 'Resign' END AS status
                     FROM registrations r
+                    LEFT JOIN roles ro ON r.role_id = ro.id
                     LEFT JOIN resigns rs ON r.id = rs.registration_id
                     ORDER BY r.id";
                 using (MySqlCommand cmd = new MySqlCommand(query, conn))
@@ -77,6 +79,8 @@ namespace FoodOutlet.AppCode
                             // FIX Problem 4: Use null coalescing operator
                             address = rst["address"]?.ToString() ?? "",
                             role_id = rst["role_id"] == DBNull.Value ? 0 : Convert.ToInt32(rst["role_id"]),
+                            photo = rst["photo"]?.ToString() ?? "",
+                            role_name = rst["role_name"]?.ToString() ?? "",
                             status = rst["status"]?.ToString() ?? ""
                         });
                     }
@@ -304,7 +308,7 @@ ORDER BY r.recipe_name, r.id";
             using (MySqlConnection conn = _connectionFactory.CreateConnection())
             {
                 conn.Open();
-                using (MySqlCommand cmd = new MySqlCommand("SELECT id,registration_name AS name,email,password_hash,birth_of_date,phone_no,address,role_id FROM registrations WHERE id=@id", conn))
+                using (MySqlCommand cmd = new MySqlCommand("SELECT id,registration_name AS name,email,password_hash,birth_of_date,phone_no,address,role_id,photo FROM registrations WHERE id=@id", conn))
                 {
                     cmd.Parameters.AddWithValue("@id", id);
                     using (MySqlDataReader rst = cmd.ExecuteReader())
@@ -343,31 +347,33 @@ ORDER BY r.recipe_name, r.id";
                     conn.Open();
                     if (staf.id > 0)
                     {
-                        using (MySqlCommand cmd = new MySqlCommand("UPDATE registrations SET registration_name=@name,email=@email,birth_of_date=@birth_of_date,password_hash=@password_hash,phone_no=@phone_no,address=@address,role_id=@role_id WHERE id=@id", conn))
+                        using (MySqlCommand cmd = new MySqlCommand("UPDATE registrations SET registration_name=@name,email=@email,birth_of_date=@birth_of_date,password_hash=@password_hash,phone_no=@phone_no,address=@address,role_id=@role_id,photo=@photo WHERE id=@id", conn))
                         {
                             cmd.Parameters.AddWithValue("@id", staf.id);
                             cmd.Parameters.AddWithValue("@name", staf.name);
                             cmd.Parameters.AddWithValue("@email", staf.email);
-                            cmd.Parameters.AddWithValue("@birth_of_date", staf.birth_of_date);
+                            cmd.Parameters.AddWithValue("@birth_of_date", staf.birth_of_date ?? (object)DBNull.Value);
                             cmd.Parameters.AddWithValue("@password_hash", staf.password);
                             cmd.Parameters.AddWithValue("@phone_no", staf.phone_no);
                             cmd.Parameters.AddWithValue("@address", staf.address);
                             cmd.Parameters.AddWithValue("@role_id", staf.role_id);
+                            cmd.Parameters.AddWithValue("@photo", staf.photo ?? "");
                             cmd.ExecuteNonQuery();
-                            msg.message = "Updated";
+                            msg.message = "Success";
                         }
                     }
                     else
                     {
-                        using (MySqlCommand cmd = new MySqlCommand("INSERT INTO registrations (registration_name,email,birth_of_date,password_hash,phone_no,address,role_id) VALUES (@name,@email,@birth_of_date,@password_hash,@phone_no,@address,@role_id)", conn))
+                        using (MySqlCommand cmd = new MySqlCommand("INSERT INTO registrations (registration_name,email,birth_of_date,password_hash,phone_no,address,role_id,photo) VALUES (@name,@email,@birth_of_date,@password_hash,@phone_no,@address,@role_id,@photo)", conn))
                         {
                             cmd.Parameters.AddWithValue("@name", staf.name);
                             cmd.Parameters.AddWithValue("@email", staf.email);
-                            cmd.Parameters.AddWithValue("@birth_of_date", staf.birth_of_date);
+                            cmd.Parameters.AddWithValue("@birth_of_date", staf.birth_of_date ?? (object)DBNull.Value);
                             cmd.Parameters.AddWithValue("@password_hash", staf.password);
                             cmd.Parameters.AddWithValue("@phone_no", staf.phone_no);
                             cmd.Parameters.AddWithValue("@address", staf.address);
                             cmd.Parameters.AddWithValue("@role_id", staf.role_id);
+                            cmd.Parameters.AddWithValue("@photo", staf.photo ?? "");
                             cmd.ExecuteNonQuery();
                             msg.message = "Success";
                         }

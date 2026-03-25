@@ -10,6 +10,8 @@
         public string phone_no { get; set; } = "";
         public string address { get; set; } = "";
         public string password { get; set; } = "";
+        public string photo { get; set; } = "";
+        public string role_name { get; set; } = "";
         public string status { get; set; } = "";
 
     }

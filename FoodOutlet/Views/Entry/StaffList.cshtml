@@ -28,11 +28,12 @@
                     <thead> 
                         <tr>
                             <th>No.</th>
+                            <th>Photo</th>
                             <th>Name</th>
                             <th>Email</th>
                             <th>Phone</th>
                             <th>Address</th>
-                            <th>Role ID</th>
+                            <th>Role</th>
                             <th>Status</th>
                             <th>Action</th>
                         </tr>
@@ -44,6 +45,16 @@
         </div>
     </div>
 </section>
+
+<style>
+    .staff-photo {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        object-fit: cover;
+        display: block;
+    }
+</style>
 
 <script>
     function editStaff(id) {
@@ -85,14 +96,20 @@
                     let badge = staff.status === "In Service"
                         ? '<span class="badge badge-success">In Service</span>'
                         : '<span class="badge badge-danger">Resign</span>';
+
+                    let photoHtml = staff.photo 
+                        ? '<img src="' + staff.photo + '" alt="' + staff.name + '" class="staff-photo" />'
+                        : '<img src="/img/dummy_img.png" alt="' + staff.name + '" class="staff-photo" />';
+
                     rows += `
                         <tr>
                             <td>${rowNumber}</td>
+                            <td>${photoHtml}</td>
                             <td>${staff.name}</td>
                             <td>${staff.email}</td>
                             <td>${staff.phone_no}</td>
                             <td>${staff.address}</td>
-                            <td>${staff.role_id}</td>
+                            <td>${staff.role_name || 'N/A'}</td>
                             <td>${badge}</td>
                             <td>
                                 <button class="btn btn-warning btn-sm" onclick="editStaff(${staff.id})">

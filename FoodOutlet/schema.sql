@@ -17,6 +17,7 @@ CREATE TABLE Registrations (
     password_hash VARCHAR(255),
     address TEXT,
     phone_no VARCHAR(20),
+    photo VARCHAR(255),
     role_id INT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
