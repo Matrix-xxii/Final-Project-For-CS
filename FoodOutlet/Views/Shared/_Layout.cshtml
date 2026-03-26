@@ -14,6 +14,7 @@
     <link rel="stylesheet" href="~/plugins/daterangepicker/daterangepicker.css" />
     <link rel="stylesheet" href="~/plugins/summernote/summernote-bs4.min.css" />
     <link rel="stylesheet" href="~/css/adminlte.min.css" />
+   
 
     <!-- Global Image Frame Styles -->
     <style>
@@ -66,6 +67,44 @@
         @@keyframes loading {
             0% { background-position: 200% 0; }
             100% { background-position: -200% 0; }
+        }
+
+        <!-- Photo Frame Component Styles -->
+        .photo-frame {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #f5f5f5;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+            flex-shrink: 0;
+            position: relative;
+            box-sizing: border-box;
+        }
+
+        .photo-frame img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        .photo-frame.ratio-1-1 { aspect-ratio: 1/1; }
+        .photo-frame.ratio-4-3 { aspect-ratio: 4/3; }
+        .photo-frame.ratio-16-9 { aspect-ratio: 16/9; }
+
+        .photo-frame.circle { border-radius: 50%; }
+        .photo-frame.rounded { border-radius: 8px; }
+
+        .photo-frame.shadow-sm { box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1); }
+        .photo-frame.shadow-lg { box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2); }
+
+        .photo-frame.border-primary { border: 2px solid #007bff; }
+        .photo-frame.border-dark { border-color: #999; }
+
+        @@media (max-width: 768px) {
+            .photo-frame { width: 100% !important; max-width: 100%; }
         }
     </style>
 

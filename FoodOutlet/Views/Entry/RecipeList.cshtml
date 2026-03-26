@@ -44,13 +44,6 @@
         word-wrap: break-word;
     }
 
-    /* Ensure consistent date column width */
-    #recipeTable thead th:nth-child(7),
-    #recipeTable tbody td:nth-child(7) {
-        width: 120px;
-        text-align: center;
-    }
-
     /* Image column */
     #recipeTable thead th:nth-child(2),
     #recipeTable tbody td:nth-child(2) {
@@ -58,9 +51,9 @@
         text-align: center;
     }
 
-    /* Action column */
-    #recipeTable thead th:nth-child(8),
-    #recipeTable tbody td:nth-child(8) {
+    /* Action column - now column 6 instead of 7 */
+    #recipeTable thead th:nth-child(6),
+    #recipeTable tbody td:nth-child(6) {
         width: 100px;
         text-align: center;
     }
@@ -108,7 +101,6 @@
                             <th>Category</th>
                             <th>Price (MMK)</th>
                             <th>Description</th>
-                            <th>Created</th>
                             <th class="text-center">Action</th>
                         </tr>
                     </thead>
@@ -135,8 +127,7 @@
             columnDefs: [
                 { targets: 0, orderable: false, width: '50px' },
                 { targets: 1, orderable: false, width: '80px' },
-                { targets: 6, orderable: true, width: '120px' },
-                { targets: 7, orderable: false, width: '100px' }
+                { targets: 6, orderable: false, width: '100px' }  // Action column is now 6 (was 7)
             ]
         });
 
@@ -208,7 +199,6 @@
                 list.forEach(function (r, idx) {
                     const descHtml = makeDescriptionCell(r.description ?? '', 60);
                     const imgHtml = getImageUrl(r.recipe_img ?? '');
-                    const dateHtml = formatDate(r.created_at ?? '');
                     
                     recipeTable.row.add([
                         idx + 1,
@@ -217,7 +207,6 @@
                         r.category_name ?? '',
                         parseFloat(r.price || 0).toLocaleString(),
                         descHtml,
-                        dateHtml,
                         `<div class="text-center">
                             <button class="action-btn btn-edit btn btn-warning btn-sm" title="Edit" onclick="goEdit(${r.id})"><i class="fas fa-edit"></i></button>
                             <button class="action-btn btn-delete btn btn-danger btn-sm" title="Delete" onclick="deleteRecipe(${r.id})"><i class="fas fa-trash"></i></button>
@@ -250,5 +239,48 @@
             alert('Delete failed');
         });
     }
+
+    function getRecipePhotoFrame(imagePath, recipeName) {
+        return PhotoFrameHelper.PhotoFrameHtml(
+            imagePath || '/img/placeholder.png',
+            "4:3",
+            80,
+            recipeName,
+            "rounded shadow-sm"
+        );
+    }
+
+    $(document).ready(function () {
+        $.ajax({
+            url: '/api/get_all_recipes',
+            type: 'GET',
+            success: function (response) {
+                let rows = "";
+                var list = response.recipes || [];
+                list.forEach(function (recipe, idx) {
+                    let photoFrame = getRecipePhotoFrame(recipe.recipe_img, recipe.recipe_name);
+
+                    rows += `
+                        <tr>
+                            <td>${idx + 1}</td>
+                            <td>${photoFrame}</td>
+                            <td>${recipe.recipe_name}</td>
+                            <td>${recipe.category_name}</td>
+                            <td>${recipe.price}</td>
+                            <td>
+                                <button class="btn btn-warning btn-sm" onclick="editRecipe(${recipe.id})">
+                                    <i class="fas fa-edit"></i>
+                                </button>           
+                                <button class="btn btn-danger btn-sm" onclick="deleteRecipe(${recipe.id})">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                });
+                $("#recipeTable tbody").html(rows);
+            }
+        });
+    });
 </script>
 }

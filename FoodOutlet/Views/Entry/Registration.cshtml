@@ -1,121 +1,171 @@
 ﻿@model FoodOutlet.Models.Staff
+
 @{
     bool isEdit = Model != null && Model.id > 0;
-    ViewData["Title"] = isEdit ? Model.name : "Registration";
+    ViewData["Title"] = isEdit ? "Edit Staff: " + Model.name : "Staff Registration";
 }
 
 <div class="content-header">
-    <div class="container-fluid">
-    </div>
+    <div class="container-fluid"></div>
 </div>
 
 <section class="content">
     <div class="container-fluid">
         <div class="row">
-            <div class="col-12 col-sm-12 col-md-12">
+            <div class="col-12 col-lg-10 col-xl-8 mx-auto">
                 <div class="card">
                     <div class="card-header">
-                        <h3 class="card-title font-weight-bold">
-                            @(isEdit ? "Edit \"" + Model.name + "\"" : "Staff Registration")
+                        <h3>
+                            <i class="fas fa-user-plus"></i>
+                            @(isEdit ? "Edit Staff: " + Model.name : "Staff Registration")
                         </h3>
                     </div>
-                    <form class="form-horizontal">
-                        <input type="hidden" id="hdnId" value="@(Model?.id ?? 0)" />
-                        <input type="hidden" id="hdnPhoto" value="@(Model?.photo ?? "")" />
-                        <div class="card-block">
-                            <div class="row">
 
-                                <div class="col-md-2"></div>
+                    <div class="card-body">
+                        <form>
+                            <input type="hidden" id="hdnId" value="@(Model?.id ?? 0)" />
+                            <input type="hidden" id="hdnPhoto" value="@(Model?.photo ?? "")" />
 
-                                <div class="col-md-6">
-                                    <div class="form-group row">
-                                        <div class="col-md-4"></div>
-                                        <div class="col-md-8" style="text-align:center;">
-                                            <input style="display:none" name="file" id="input-image-hidden"
-                                                   onchange="encodeImgtoBase64(this);"
-                                                   type="file" accept="image/jpeg, image/png">
+                            <!-- PHOTO UPLOAD SECTION -->
+                            <div class="photo-upload-container">
+                                <label class="photo-upload-label">
+                                    <i class="fas fa-camera"></i> Staff Photo
+                                </label>
 
-                                            <img id="previewing" name="previewing" 
-                                                 src="@(string.IsNullOrEmpty(Model?.photo) ? "/img/dummy_img.png" : Model.photo)"
-                                                 style="margin-top:20px; height:128px; width:128px;cursor:pointer;object-fit:cover;border-radius:50%;border:2px solid #ddd;"
-                                                 onclick="HandleBrowseClick('input-image-hidden');"
-                                                 title="Click to Change the Photo."
-                                                 class="profile-user-img img-responsive"
-                                                 alt="User profile picture">
+                                <div class="photo-frame-wrapper" onclick="HandleBrowseClick('input-image-hidden');">
+                                    <div class="photo-frame">
+                                        <img id="previewing" 
+                                             src="@(string.IsNullOrEmpty(Model?.photo) ? "/img/placeholder.png" : Model.photo)"
+                                             alt="Staff Photo" />
+                                    </div>
+                                    <div class="photo-upload-badge">
+                                        <i class="fas fa-camera"></i>
+                                    </div>
+                                </div>
 
-                                            <div style="margin-top: 10px;"><strong>Photo</strong></div>
-                                        </div>
-                                    </div>
-                                    <div class="form-group row">
-                                        <label class="col-md-4 col-form-label" style="text-align:right;">Staff Name:</label>
-                                        <div class="col-md-8">
-                                            <input type="text" class="form-control" id="txtStaffName" value="@(Model?.name ?? "")" required @(isEdit ? "readonly" : "")>
-                                        </div>
-                                    </div>
-                                    <div class="form-group row">
-                                        <label class="col-md-4 col-form-label" style="text-align:right;">Email:</label>
-                                        <div class="col-md-8">
-                                            <input type="email" class="form-control" id="txtEmail" value="@(Model?.email ?? "")" required>
-                                        </div>
-                                    </div>
-                                    <div class="form-group row">
-                                        <label class="col-md-4 col-form-label" style="text-align:right;">Staff Role:</label>
-                                        <div class="col-md-8">
-                                            <select class="form-select form-control" id="cboStaffRole" required>
-                                                <option value="">Choose</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                    <div class="form-group row">
-                                        <label class="col-md-4 col-form-label" style="text-align:right;">Date of Birth:</label>
-                                        <div class="col-md-8">
-                                            <input type="date" class="form-control" id="txtBirthDate" value="@(Model?.birth_of_date?.ToString("yyyy-MM-dd") ?? "")">
-                                        </div>
-                                    </div>
-                                    <div class="form-group row">
-                                        <label class="col-md-4 col-form-label text-right">Phone No:</label>
-                                        <div class="col-md-8">
-                                            <input type="text" class="form-control" id="txtPhone" value="@(Model?.phone_no ?? "")">
-                                            <small class="text-danger" id="phoneError"></small>
-                                        </div>
-                                    </div>
-                                    <div class="form-group row">
-                                        <label class="col-md-4 col-form-label text-right">Address:</label>
-                                        <div class="col-md-8">
-                                            <textarea class="form-control" id="txtAddress">@(Model?.address ?? "")</textarea>
-                                        </div>
-                                    </div>
+                                <input type="file" 
+                                       id="input-image-hidden"
+                                       class="photo-upload-input"
+                                       accept="image/jpeg, image/png, image/webp"
+                                       onchange="encodeImgtoBase64(this);">
 
-                                    <div class="form-group row">
-                                        <label class="col-md-4 col-form-label" style="text-align:right;">Password:</label>
-                                        <div class="col-md-8">
-                                            <input type="@(isEdit ? "text" : "password")" class="form-control" id="txtPassword" value="@(Model?.password ?? "")">
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="form-group row">
-                                        <div class="col-md-9 offset-md-3 text-right">
-                                            @if (isEdit)
-                                            {
-                                                <button type="button" id="btnSave" class="btn btn-success" onclick="saveStaff()">
-                                                    <i class="fas fa-check"></i> Update
-                                                </button>
-                                                <a class="btn btn-secondary ml-2" asp-controller="Entry" asp-action="StaffList">Back to Staff List</a>
-                                                
-                                            }
-                                            else
-                                            {
-                                                <button type="button" id="btnSave" class="btn btn-success" onclick="saveStaff()">
-                                                    <i class="fas fa-check"></i> Create
-                                                </button>
-                                                <a class="btn btn-secondary ml-2" asp-controller="Entry" asp-action="Registration">Clear</a>
-                                            }
-                                        </div>
-                                    </div>
-                                <div class="col-md-4"></div>
+                                <div class="photo-upload-hint">
+                                    <i class="fas fa-info-circle"></i>
+                                    Click the circle above to upload photo<br>
+                                    <small>JPG, PNG, WEBP (Max 5MB)</small>
+                                </div>
                             </div>
-                        </div>
-                    </form>
+
+                            <!-- PERSONAL INFORMATION SECTION -->
+                            <div class="form-section-title">
+                                <i class="fas fa-user"></i> Personal Information
+                            </div>
+
+                            <div class="form-group row">
+                                <label class="col-md-3 col-form-label required">Staff Name:</label>
+                                <div class="col-md-9">
+                                    <input type="text" 
+                                           class="form-control" 
+                                           id="txtStaffName" 
+                                           value="@(Model?.name ?? "")" 
+                                           placeholder="Enter staff name"
+                                           required 
+                                           @(isEdit ? "readonly" : "")>
+                                </div>
+                            </div>
+
+                            <div class="form-group row">
+                                <label class="col-md-3 col-form-label required">Email:</label>
+                                <div class="col-md-9">
+                                    <input type="email" 
+                                           class="form-control" 
+                                           id="txtEmail" 
+                                           value="@(Model?.email ?? "")" 
+                                           placeholder="Enter email address"
+                                           required>
+                                </div>
+                            </div>
+
+                            <div class="form-group row">
+                                <label class="col-md-3 col-form-label">Date of Birth:</label>
+                                <div class="col-md-9">
+                                    <input type="date" 
+                                           class="form-control" 
+                                           id="txtBirthDate" 
+                                           value="@(Model?.birth_of_date?.ToString("yyyy-MM-dd") ?? "")">
+                                </div>
+                            </div>
+
+                            <div class="form-group row">
+                                <label class="col-md-3 col-form-label">Phone No:</label>
+                                <div class="col-md-9">
+                                    <input type="text" 
+                                           class="form-control" 
+                                           id="txtPhone" 
+                                           value="@(Model?.phone_no ?? "")" 
+                                           placeholder="Enter phone number">
+                                    <small class="text-danger" id="phoneError"></small>
+                                </div>
+                            </div>
+
+                            <div class="form-group row">
+                                <label class="col-md-3 col-form-label">Address:</label>
+                                <div class="col-md-9">
+                                    <textarea class="form-control" 
+                                              id="txtAddress" 
+                                              placeholder="Enter staff address">@(Model?.address ?? "")</textarea>
+                                </div>
+                            </div>
+
+                            <!-- ROLE & CREDENTIALS SECTION -->
+                            <div class="form-section-title">
+                                <i class="fas fa-lock"></i> Role & Credentials
+                            </div>
+
+                            <div class="form-group row">
+                                <label class="col-md-3 col-form-label required">Staff Role:</label>
+                                <div class="col-md-9">
+                                    <select class="form-control" id="cboStaffRole" required>
+                                        <option value="">-- Select Role --</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="form-group row">
+                                <label class="col-md-3 col-form-label required">Password:</label>
+                                <div class="col-md-9">
+                                    <input type="@(isEdit ? "text" : "password")" 
+                                           class="form-control" 
+                                           id="txtPassword" 
+                                           value="@(Model?.password ?? "")" 
+                                           placeholder="@(isEdit ? "Staff password" : "Create password")"
+                                           required>
+                                </div>
+                            </div>
+
+                            <!-- ACTION BUTTONS -->
+                            <div class="form-button-group">
+                                @if (isEdit)
+                                {
+                                    <a class="btn btn-secondary" asp-controller="Entry" asp-action="StaffList">
+                                        <i class="fas fa-arrow-left"></i> Back to List
+                                    </a>
+                                    <button type="button" class="btn btn-primary" onclick="saveStaff()">
+                                        <i class="fas fa-check-circle"></i> Update Staff
+                                    </button>
+                                }
+                                else
+                                {
+                                    <button type="reset" class="btn btn-secondary" onclick="clearForm()">
+                                        <i class="fas fa-redo"></i> Clear
+                                    </button>
+                                    <button type="button" class="btn btn-success" onclick="saveStaff()">
+                                        <i class="fas fa-plus-circle"></i> Create Staff
+                                    </button>
+                                }
+                            </div>
+                        </form>
+                    </div>
                 </div>
             </div>
         </div>
@@ -128,110 +178,109 @@
     });
 
     function loadRoles() {
-        console.log('loadRoles: requesting /api/get_all_roles');
         $.ajax({
             type: "GET",
             url: "/api/get_all_roles",
             dataType: "json"
         })
         .done(function (data) {
-            try {
-                console.log('loadRoles: response', data);
-                var list = data && data.roles ? data.roles : data;
+            var list = data?.roles || data || [];
+            var $sel = $("#cboStaffRole");
+            $sel.empty().append('<option value="">-- Select Role --</option>');
 
-                var $sel = $("#cboStaffRole");
-                $sel.empty();
-                $sel.append('<option value="">Choose</option>');
+            if (Array.isArray(list) && list.length) {
+                $.each(list, function (i, role) {
+                    var id = role.id ?? role.role_id ?? 0;
+                    var name = role.role_name ?? role.name ?? '';
+                    $sel.append($('<option>').val(id).text(name));
+                });
 
-                if (Array.isArray(list) && list.length) {
-                    $.each(list, function (i, role) {
-                        var id = role.id ?? role.role_id ?? role.Id;
-                        var name = role.role_name ?? role.name ?? role.RoleName ?? '';
-                        $sel.append($('<option>').val(id).text(name));
-                    });
-
-                    @if(Model != null && Model.role_id > 0){
-                        <text>console.log('loadRoles: selecting role @Model.role_id'); $sel.val('@Model.role_id');</text>
-                    }
-                } else {
-                    console.warn('loadRoles: no roles returned', list);
-                    @if(Model != null && Model.role_id > 0){
-                        <text>console.log('loadRoles: fallback select role @Model.role_id'); $sel.val('@Model.role_id');</text>
-                    }
+                @if(Model != null && Model.role_id > 0){
+                    <text>$("#cboStaffRole").val('@Model.role_id');</text>
                 }
-            } catch (ex) {
-                console.error('loadRoles: exception processing response', ex);
-            }
-        })
-        .fail(function (xhr, status, err) {
-            console.error('loadRoles: AJAX failed', status, err, xhr.responseText);
-            alert("Cannot load roles");
-            @if(Model != null && Model.role_id > 0){
-                <text>$("#cboStaffRole").val("@Model.role_id");</text>
             }
         });
     }
 
     function encodeImgtoBase64(element) {
         var file = element.files[0];
+        if (!file) return;
+
+        if (file.size > 5 * 1024 * 1024) {
+            alert('File size exceeds 5MB limit');
+            element.value = '';
+            return;
+        }
+
         var reader = new FileReader();
         reader.onloadend = function () {
             $("#hdnPhoto").val(reader.result);
             $("#previewing").attr("src", reader.result);
         };
-        if (file) {
-            reader.readAsDataURL(file);
-        }
+        reader.readAsDataURL(file);
     }
 
     function HandleBrowseClick(id) {
-        var fileInput = document.getElementById(id);
-        fileInput.click();
+        document.getElementById(id).click();
     }
 
     $("#txtPhone").on("input", function () {
-        let phone = $(this).val();
-        phone = phone.replace(/[^0-9]/g, '');
+        let phone = $(this).val().replace(/[^0-9]/g, '');
         $(this).val(phone);
-
-        if (phone.length < 11) {
-            $("#phoneError").text("Phone must be at least 11 digits");
+        
+        const error = $("#phoneError");
+        if (phone.length > 0 && phone.length < 11) {
+            error.text("Phone must be at least 11 digits");
         } else {
-            $("#phoneError").text("");
+            error.text("");
         }
     });
 
-    function saveStaff(){
+    function saveStaff() {
+        if (!$("#txtStaffName").val().trim()) {
+            alert('Please enter staff name');
+            return;
+        }
+        if (!$("#txtEmail").val().trim()) {
+            alert('Please enter email');
+            return;
+        }
+        if (!$("#cboStaffRole").val()) {
+            alert('Please select a role');
+            return;
+        }
+        if (!$("#txtPassword").val()) {
+            alert('Please enter password');
+            return;
+        }
+
         var obj = {
-            id: parseInt($("#hdnId").val()),
-            name: $("#txtStaffName").val(),
-            email: $("#txtEmail").val(),
-            birth_of_date: $("#txtBirthDate").val(),
+            id: parseInt($("#hdnId").val()) || 0,
+            name: $("#txtStaffName").val().trim(),
+            email: $("#txtEmail").val().trim(),
+            birth_of_date: $("#txtBirthDate").val() || null,
             password: $("#txtPassword").val(),
             phone_no: $("#txtPhone").val(),
             address: $("#txtAddress").val(),
             photo: $("#hdnPhoto").val(),
             role_id: parseInt($("#cboStaffRole").val() || 0)
         };
-        console.log('saveStaff: payload', obj);
 
         $.ajax({
             type: "POST",
             url: "/api/set_staff",
             data: JSON.stringify(obj),
-            contentType: "application/json; charset=utf-8",
+            contentType: "application/json",
             dataType: "json"
         }).done(function(res){
-            if(res.message == "Success"){
-                alert("Saved");
-                clearForm();
+            if(res.message === "Success"){
+                alert("Staff " + (obj.id > 0 ? "updated" : "created") + " successfully!");
                 window.location = '/Entry/StaffList';
-            }else{
-                alert(res.message);
+            } else {
+                alert("Error: " + res.message);
             }
-        }).fail(function(xhr, status, err){
-            console.error('saveStaff: failed', status, err, xhr.responseText);
-            alert('Save failed');
+        }).fail(function(){
+            alert('Failed to save staff');
         });
     }
 
@@ -245,6 +294,7 @@
         $("#cboStaffRole").val("");
         $("#txtAddress").val("");
         $("#txtPhone").val("");
-        $("#previewing").attr("src", "/img/dummy_img.png");
+        $("#previewing").attr("src", "/img/placeholder.png");
+        $("#phoneError").text("");
     }
 </script>

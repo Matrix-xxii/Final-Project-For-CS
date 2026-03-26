@@ -84,6 +84,17 @@
         $("#staffCount").text("Total Staff: " + count);
     }
 
+    function getStaffPhotoFrame(imagePath, staffName) {
+        // Using helper method format
+        return PhotoFrameHelper.PhotoFrameHtml(
+            imagePath || '/img/placeholder.png',
+            "1:1",
+            100,
+            staffName,
+            "circle shadow-sm border-primary"
+        );
+    }
+
     $(document).ready(function () {
         $.ajax({
             url: '/api/get_all_staffs',
@@ -97,14 +108,12 @@
                         ? '<span class="badge badge-success">In Service</span>'
                         : '<span class="badge badge-danger">Resign</span>';
 
-                    let photoHtml = staff.photo 
-                        ? '<img src="' + staff.photo + '" alt="' + staff.name + '" class="staff-photo" />'
-                        : '<img src="/img/dummy_img.png" alt="' + staff.name + '" class="staff-photo" />';
+                    let photoFrame = getStaffPhotoFrame(staff.photo, staff.name);
 
                     rows += `
                         <tr>
                             <td>${rowNumber}</td>
-                            <td>${photoHtml}</td>
+                            <td>${photoFrame}</td>
                             <td>${staff.name}</td>
                             <td>${staff.email}</td>
                             <td>${staff.phone_no}</td>

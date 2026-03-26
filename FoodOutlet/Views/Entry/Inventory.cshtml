@@ -264,5 +264,44 @@
             if(res.message == 'Success') loadInventories(); else alert(res.message);
         }).fail(function(){ alert('Delete failed'); });
     }
+
+    function getRecipePhotoFrame(imagePath, recipeName) {
+        return PhotoFrameHelper.PhotoFrameHtml(
+            imagePath || '/img/placeholder.png',
+            "4:3",
+            80,
+            recipeName,
+            "rounded shadow-sm"
+        );
+    }
+
+    $(document).ready(function () {
+        $.ajax({
+            url: '/api/get_all_inventories',
+            type: 'GET',
+            success: function (response) {
+                let rows = "";
+                var list = response.inventories || [];
+                list.forEach(function (item, idx) {
+                    let photoFrame = getRecipePhotoFrame(item.recipe_img, item.recipe_name);
+
+                    rows += `
+                        <tr>
+                            <td>${idx + 1}</td>
+                            <td>${photoFrame}</td>
+                            <td>${item.recipe_name}</td>
+                            <td><input type="number" value="${item.stock_qty}" min="0" /></td>
+                            <td>
+                                <button class="btn btn-primary btn-sm" onclick="updateInventory(${item.recipe_id})">
+                                    <i class="fas fa-save"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                });
+                $("#inventoryTable tbody").html(rows);
+            }
+        });
+    });
 </script>
 }

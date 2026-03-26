@@ -1,8 +1,2 @@
-D:\MLM\Final\FoodOutlet\wwwroot\tableQR\19301d8a_table3.jpg
-D:\MLM\Final\FoodOutlet\wwwroot\tableQR\2c2e5780_table6.jpg
-D:\MLM\Final\FoodOutlet\wwwroot\tableQR\7c1d3741_table2.jpg
-D:\MLM\Final\FoodOutlet\wwwroot\tableQR\bc37740d_table5.jpg
-D:\MLM\Final\FoodOutlet\wwwroot\tableQR\e8a51ffb_table4.jpg
-D:\MLM\Final\FoodOutlet\wwwroot\uploads\qrcodes\9420c3337a20415985507ee352d4ab94.png
-D:\MLM\Final\FoodOutlet\wwwroot\uploads\recipes\ab484037-84cb-4999-be8a-68b09ff3a4c1.jpg
-D:\MLM\Final\FoodOutlet\wwwroot\uploads\recipes\e008da6d-b223-4f37-b554-dcbdecc05623.jpg
+D:\MLM\Final\FoodOutlet\wwwroot\css\forms.css
+D:\MLM\Final\FoodOutlet\wwwroot\css\modern-ui.css

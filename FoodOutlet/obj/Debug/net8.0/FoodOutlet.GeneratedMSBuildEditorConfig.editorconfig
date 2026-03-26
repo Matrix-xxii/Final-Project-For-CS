@@ -22,6 +22,10 @@ build_property._RazorSourceGeneratorDebug =
 build_property.EffectiveAnalysisLevelStyle = 8.0
 build_property.EnableCodeStyleSeverity = 
 
+[D:/MLM/Final/FoodOutlet/wwwroot/Component.razor]
+build_metadata.AdditionalFiles.TargetPath = d3d3cm9vdFxDb21wb25lbnQucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
 [D:/MLM/Final/FoodOutlet/Views/Entry/Category.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcRW50cnlcQ2F0ZWdvcnkuY3NodG1s
 build_metadata.AdditionalFiles.CssScope = 

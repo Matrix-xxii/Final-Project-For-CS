@@ -447,3 +447,19 @@
         return $('input[name="__RequestVerificationToken"]').val();
     }
 </script>
+
+<!-- Display QR codes -->
+<div class="row">
+    @foreach (var table in Model)
+    {
+        <div class="col-lg-3 col-md-4 col-sm-6 mb-3">
+            <div class="card text-center">
+                @Html.QRCodeFrame(table.qr_code, $"Table {table.table_number}")
+                <div class="card-body">
+                    <h6>Table #@table.table_number</h6>
+                    <small>@table.created_at.ToString("yyyy-MM-dd")</small>
+                </div>
+            </div>
+        </div>
+    }
+</div>
