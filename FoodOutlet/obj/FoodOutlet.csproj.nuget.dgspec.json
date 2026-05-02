@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "D:\\MLM\\Final\\FoodOutlet\\FoodOutlet.csproj": {}
+    "D:\\MLM\\Final\\Final-Project-For-CS\\FoodOutlet\\FoodOutlet.csproj": {}
   },
   "projects": {
-    "D:\\MLM\\Final\\FoodOutlet\\FoodOutlet.csproj": {
+    "D:\\MLM\\Final\\Final-Project-For-CS\\FoodOutlet\\FoodOutlet.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\MLM\\Final\\FoodOutlet\\FoodOutlet.csproj",
+        "projectUniqueName": "D:\\MLM\\Final\\Final-Project-For-CS\\FoodOutlet\\FoodOutlet.csproj",
         "projectName": "FoodOutlet",
-        "projectPath": "D:\\MLM\\Final\\FoodOutlet\\FoodOutlet.csproj",
+        "projectPath": "D:\\MLM\\Final\\Final-Project-For-CS\\FoodOutlet\\FoodOutlet.csproj",
         "packagesPath": "C:\\Users\\scriptorium-18\\.nuget\\packages\\",
-        "outputPath": "D:\\MLM\\Final\\FoodOutlet\\obj\\",
+        "outputPath": "D:\\MLM\\Final\\Final-Project-For-CS\\FoodOutlet\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
@@ -58,6 +58,10 @@
             "QRCoder": {
               "target": "Package",
               "version": "[1.4.3, )"
+            },
+            "SixLabors.ImageSharp": {
+              "target": "Package",
+              "version": "[3.1.3, )"
             }
           },
           "imports": [

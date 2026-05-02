@@ -3,238 +3,599 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Food Outlet</title>
+    <title>Food Outlet - Table Order</title>
 
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="~/plugins/bootstrap/css/bootstrap.min.css">
     <!-- Font Awesome -->
     <link rel="stylesheet" href="~/plugins/fontawesome-free/css/all.min.css">
-    <!-- Ionicons -->
-    <link rel="stylesheet" href="https://code.ionicframework.com/ionicons/2.0.1/css/ionicons.min.css">
-    <!-- iCheck -->
-    <link rel="stylesheet" href="~/plugins/icheck-bootstrap/icheck-bootstrap.min.css">
-    <!-- Theme style -->
+    <!-- AdminLTE CSS -->
     <link rel="stylesheet" href="~/css/adminlte.min.css">
-    <!-- overlayScrollbars -->
-    <link rel="stylesheet" href="~/plugins/overlayScrollbars/css/OverlayScrollbars.min.css">
-    <!-- Daterange picker -->
-    <link rel="stylesheet" href="~/plugins/daterangepicker/daterangepicker.css">
-    <!-- summernote -->
-    <link rel="stylesheet" href="~/plugins/summernote/summernote-bs4.min.css">
-
-
-    <!-- jQuery -->
-    <script src="~/plugins/jquery/jquery.min.js"></script>
-    <!-- jQuery UI 1.11.4 -->
-    <script src="~/plugins/jquery-ui/jquery-ui.min.js"></script>
-    <!-- daterangepicker -->
-    <script src="~/plugins/moment/moment.min.js"></script>
-    <script src="~/plugins/daterangepicker/daterangepicker.js"></script>
-    <!-- Summernote -->
-    <script src="~/plugins/summernote/summernote-bs4.min.js"></script>
-    <!-- overlayScrollbars -->
-    <script src="~/plugins/overlayScrollbars/js/jquery.overlayScrollbars.min.js"></script>
-    <script src="~/js/adminlte.js"></script>
 
     <style>
-        .main-header, .main-footer {
-            margin-left: 0px !important;
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            margin-left:0 !important;
         }
 
-        .main-header {
+        html, body {
+            height: 100%;
+            width: 100%;
+            background-color: #ffdf2a;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            overflow-x: hidden;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+
+        .wrapper {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            width: 100%;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* ==================== NAVBAR STYLING ==================== */
+        .main-header.navbar {
             background-color: #c0100b;
-            color: #ffff;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            height: auto;
+            margin: 0;
+            border: none;
+            flex-shrink: 0;
+            width: 100%;
+            min-width: 100%;
+            max-width: 100%;
+            left: 0;
+            right: 0;
         }
 
-        .navbar-light .navbar-nav .nav-link {
-            color: #ffff;
+        /* Logo Section */
+        .navbar-logo-section {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex-shrink: 0;
         }
 
-        .search-bar {
-            margin: 10px auto;
-        }
-
-        /* Rounded input */
-        .search-box {
-            border-radius: 15px 0 0 15px;
-            padding-left: 20px;
-        }
-
-        /* Rounded search button */
-        .btn-search {
-            border-radius: 0 15px 15px 0;
-            background-color: #fff;
-            color: #c0100b;
-            border: 1px solid #c0100b !important;
-        }
-
-        .btn-search:hover {
-            background-color: #fff;
-            color: #fff;
-        }
-
-        /* Remove double borders */
-        .input-group .form-control {
-            border-right: none;
-        }
-
-        .input-group .btn {
-            border-left: none;
-        }
-
-        .text {
-            color: #c0100b;
-        }
-
-        .transq {
-            opacity: 0.8;
-        }
-
-        .logo {
-            width: 70%;
-            height: 71%;
-            border-radius: 50%;
-        }
-
-        .logo_ed {
+        .logo-container {
             display: flex;
             align-items: center;
             justify-content: center;
             background: #ffdf2a;
             border-radius: 50%;
-            width: 30%;
-            height: 124%;
-            margin: auto;
-            position: relative;
-            top: 57%;
-            left: -21%;
+            width: 55px;
+            height: 55px;
+            flex-shrink: 0;
         }
 
-        /* Global image frame system */
-        .image-frame {
+        .logo-img {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .table-badge {
+            background: white;
+            color: #c0100b;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            white-space: nowrap;
+        }
+
+        /* Search Bar */
+        .navbar-search {
+            flex: 1;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .search-wrapper {
             display: flex;
             align-items: center;
-            justify-content: center;
-            border: 3px solid #c0100b;
-            border-radius: 8px;
-            padding: 8px;
-            background-color: #f5f5f5;
+            background: white;
+            border-radius: 20px;
             overflow: hidden;
         }
 
-        .image-frame--small {
-            width: 100px;
-            height: 100px;
+        .search-input {
+            border: none;
+            background: transparent;
+            padding: 0.75rem 1.25rem;
+            flex: 1;
+            font-size: 0.95rem;
+            outline: none;
+            color: #333;
         }
 
-        .image-frame--medium {
-            width: 200px;
-            height: 200px;
+        .search-input::placeholder {
+            color: #999;
         }
 
-        .image-frame--large {
-            width: 300px;
-            height: 300px;
+        .search-btn {
+            background: transparent;
+            border: none;
+            color: #c0100b;
+            padding: 0.75rem 1.25rem;
+            cursor: pointer;
+            font-size: 1.1rem;
+            transition: all 0.2s ease;
         }
 
-        .image-frame--hero {
+        .search-btn:hover {
+            color: #a00a08;
+        }
+
+        /* Right Section - Filter & Menu */
+        .navbar-actions {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            margin-left: auto;
+            flex-shrink: 0;
+        }
+
+        .filter-btn {
+            background: transparent;
+            border: none;
+            color: white;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            padding: 0;
+            transition: all 0.2s ease;
+        }
+
+        .filter-btn:hover {
+            color: #ffdf2a;
+        }
+
+        .menu-btn {
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0;
+            transition: all 0.2s ease;
+        }
+
+        .menu-btn:hover {
+            color: #ffdf2a;
+        }
+
+        .menu-btn::after {
+            display: none !important;
+        }
+
+        /* Dropdown Menu */
+        .dropdown-menu {
+            background: white;
+            border: none;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            min-width: 200px;
+            top: calc(100% + 0.5rem) !important;
+            right: 0 !important;
+            left: auto !important;
+        }
+
+        .dropdown-menu .dropdown-item {
+            color: #333;
+            padding: 0.75rem 1rem;
+            transition: all 0.2s ease;
+            font-size: 0.95rem;
+        }
+
+        .dropdown-menu .dropdown-item:hover {
+            background-color: #f5f5f5;
+            color: #c0100b;
+        }
+
+        .dropdown-menu .dropdown-item i {
+            margin-right: 0.75rem;
+            color: #c0100b;
+            width: 18px;
+            text-align: center;
+        }
+
+        /* ==================== FILTER PANEL ==================== */
+        .filter-panel {
+            position: fixed;
+            right: -350px;
+            top: 0;
+            width: 350px;
+            height: 100vh;
+            background: white;
+            box-shadow: -2px 0 8px rgba(0, 0, 0, 0.15);
+            z-index: 999;
+            overflow-y: auto;
+            transition: right 0.3s ease;
+            padding: 2rem 1.5rem;
+        }
+
+        .filter-panel.active {
+            right: 0;
+        }
+
+        .filter-panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .filter-panel-header h5 {
+            color: #c0100b;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .filter-close-btn {
+            background: transparent;
+            border: none;
+            font-size: 1.5rem;
+            color: #999;
+            cursor: pointer;
+            padding: 0;
+        }
+
+        .filter-close-btn:hover {
+            color: #333;
+        }
+
+        /* Filter Section */
+        .filter-section {
+            margin-bottom: 2rem;
+        }
+
+        .filter-section-title {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 1rem;
+            font-size: 0.95rem;
+        }
+
+        .filter-option {
+            display: inline-block;
+            margin-right: 0.5rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .filter-btn-toggle {
+            background: #e8e8e8;
+            border: 2px solid #e8e8e8;
+            color: #333;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-weight: 500;
+        }
+
+        .filter-btn-toggle:hover {
+            background: #d0d0d0;
+            border-color: #d0d0d0;
+        }
+
+        .filter-btn-toggle.active {
+            background: #c0100b;
+            border-color: #c0100b;
+            color: white;
+        }
+
+        /* Overlay */
+        .filter-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
             width: 100%;
-            height: 400px;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.3);
+            z-index: 998;
         }
 
-        .image-frame img {
-            max-width: 100%;
-            max-height: 100%;
-            object-fit: cover;
+        .filter-overlay.active {
             display: block;
+        }
+
+        /* ==================== CONTENT WRAPPER ==================== */
+        .content-wrapper {
+            flex: 1;
+            background-color: #ffdf2a;
+            padding: 2rem 1rem;
+            overflow-y: auto;
+            width: 100%;
+            margin: 0;
+            max-width: 100%;
+            left: 0;
+            right: 0;
+        }
+
+        main {
+            margin: 0;
+            width: 100%;
+            padding: 0;
+            max-width: 100%;
+        }
+
+        /* Override Bootstrap container-fluid default padding */
+        .container-fluid {
+            width: 100%;
+            padding-left: 0;
+            padding-right: 0;
+            margin-left: 0;
+            margin-right: 0;
+            max-width: 100%;
+        }
+
+        /* ==================== FOOTER ==================== */
+        .main-footer {
+            background-color: #333;
+            color: white;
+            padding: 1.5rem 1rem;
+            text-align: center;
+            font-size: 0.875rem;
+            border-top: 3px solid #c0100b;
+            flex-shrink: 0;
+            width: 100%;
+            margin: 0;
+            min-width: 100%;
+            max-width: 100%;
+            left: 0;
+            right: 0;
+        }
+
+        .main-footer strong {
+            color: #ffdf2a;
+        }
+
+        /* ==================== RESPONSIVE ==================== */
+        @@media (max-width: 768px) {
+            .main-header.navbar {
+                padding: 0.5rem 1rem;
+                gap: 1rem;
+            }
+
+            .navbar-logo-section {
+                gap: 0.5rem;
+            }
+
+            .logo-container {
+                width: 45px;
+                height: 45px;
+            }
+
+            .table-badge {
+                font-size: 0.85rem;
+                padding: 0.4rem 0.8rem;
+            }
+
+            .navbar-search {
+                max-width: 100%;
+                flex: 1;
+            }
+
+            .navbar-actions {
+                gap: 1rem;
+            }
+
+            .filter-panel {
+                width: 100%;
+                right: -100%;
+            }
+
+            .content-wrapper {
+                padding: 1rem 0.5rem;
+            }
+        }
+
+        @@media (max-width: 480px) {
+            .table-badge {
+                display: none;
+            }
+
+            .navbar-search {
+                order: 3;
+                flex-basis: 100%;
+            }
+
+            .search-input {
+                padding: 0.6rem 0.75rem;
+                font-size: 0.85rem;
+            }
+
+            .search-btn {
+                padding: 0.6rem 0.75rem;
+            }
+
+            .content-wrapper {
+                padding: 1rem 0.25rem;
+            }
         }
     </style>
 </head>
-<body class="hold-transition sidebar-mini layout-fixed">
+<body class="hold-transition">
     <div class="wrapper">
 
-        <!-- Preloader -->
-        <div class="preloader flex-column justify-content-center align-items-center">
-            <img class="animation__shake" src="dist/img/AdminLTELogo.png" alt="AdminLTELogo" height="60" width="60">
-        </div>
-
-        <!-- Navbar -->
-        <nav class="main-header navbar navbar-expand navbar-white navbar-light">
-            <!-- Left navbar links -->
-            <div class="col-md-3">
-                <div class="row">
-                    <div class="col-ml-6">
-                        <div class="logo_ed">
-                            <img src="~/img/pj_photo.jpg" class="logo" alt="Food Outlet Logo">
-                        </div>
-                    </div>
-                    <div class="col-ml-6"></div>
+        <!-- NAVBAR -->
+        <nav class="main-header navbar">
+            <!-- Logo Section -->
+            <div class="navbar-logo-section">
+                <div class="logo-container">
+                    <img src="~/img/pj_photo.jpg" class="logo-img" alt="Food Outlet">
                 </div>
+                <span class="table-badge" id="tableNameDisplay">Table Name</span>
             </div>
-            <div class="col-md-6">
-                <form class="search-bar">
-                    <div class="input-group">
-                        <input class="form-control search-box" type="search" id="txtSearch" placeholder="Search" aria-label="Search">
-                        <div class="input-group-append">
-                            <button class="btn btn-search" type="button" id="btnSearch">
-                                <i class="fas fa-search"></i>
-                            </button>
-                        </div>
-                    </div>
+
+            <!-- Search Bar -->
+            <div class="navbar-search">
+                <form class="search-wrapper" id="searchForm">
+                    <input type="text" class="search-input" id="searchInput" placeholder="Search" aria-label="Search">
+                    <button type="submit" class="search-btn">
+                        <i class="fas fa-search"></i>
+                    </button>
                 </form>
             </div>
-            <div class="col-md-3">
-                <div class="row">
-                    <div class="col-md-4"></div>
-                    <div class="col-md-8">
-                        <ul class="navbar-nav" style="display: flex; justify-content: center;">
-                            <li class="nav-item d-sm-inline-block">
-                                <a href="index3.html" class="nav-link">Home</a>
-                            </li>
-                            <li class="nav-item d-sm-inline-block">
-                                <a href="index3.html" class="nav-link">Filter</a>
-                            </li>
-                            <li class="nav-item dropdown show">
-                                <a class="nav-link" data-toggle="dropdown" href="#" aria-expanded="true">
-                                    <i class="fas fa-bars fa-lg"></i>
-                                </a>
-                                <div class="dropdown-menu transq dropdown-menu-right show" style="left: inherit; right: 20%; margin-top: 51%;">
-                                    <a href="#" class="dropdown-item text">
-                                        <i class="fas fa-envelope mr-2 text"></i> Order History
-                                    </a>
-                                    <div class="dropdown-divider"></div>
-                                    <a href="#" class="dropdown-item text">
-                                        <i class="fas fa-users mr-2"></i> My Cart
-                                    </a>
-                                </div>
-                            </li>
-                        </ul>
-                    </div>
+
+            <!-- Actions: Filter & Menu -->
+            <div class="navbar-actions">
+                <button class="filter-btn" id="filterToggleBtn">Filter</button>
+                <button class="menu-btn dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <div class="dropdown-menu">
+                    <a href="#" class="dropdown-item">
+                        <i class="fas fa-history"></i> Order History
+                    </a>
+                    <a href="#" class="dropdown-item">
+                        <i class="fas fa-shopping-cart"></i> My Cart
+                    </a>
+                    <a href="#" class="dropdown-item">
+                        <i class="fas fa-sign-out-alt"></i> Logout
+                    </a>
                 </div>
             </div>
         </nav>
-        <!-- /.navbar -->
 
-        <!-- Content Wrapper. Contains page content -->
-        <div class="container2">
-            <main role="main" class="pb-3" style="background-color: #ffdf2a;">
+        <!-- FILTER PANEL -->
+        <div class="filter-overlay" id="filterOverlay"></div>
+        <div class="filter-panel" id="filterPanel">
+            <div class="filter-panel-header">
+                <h5>Filter</h5>
+                <button class="filter-close-btn" id="filterCloseBtn">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <!-- Category Filter -->
+            <div class="filter-section">
+                <div class="filter-section-title">Category</div>
+                <div>
+                    <div class="filter-option">
+                        <button class="filter-btn-toggle" data-filter="category" data-value="General">General</button>
+                    </div>
+                    <div class="filter-option">
+                        <button class="filter-btn-toggle" data-filter="category" data-value="Currey">Currey</button>
+                    </div>
+                    <div class="filter-option">
+                        <button class="filter-btn-toggle" data-filter="category" data-value="Drink">Drink</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Price Range Filter -->
+            <div class="filter-section">
+                <div class="filter-section-title">Price Range</div>
+                <div>
+                    <div class="filter-option">
+                        <button class="filter-btn-toggle" data-filter="price" data-value="0-10k">0 - 10k</button>
+                    </div>
+                    <div class="filter-option">
+                        <button class="filter-btn-toggle" data-filter="price" data-value="10k-50k">10k - 50k</button>
+                    </div>
+                    <div class="filter-option">
+                        <button class="filter-btn-toggle" data-filter="price" data-value="50k-above">50k Above</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CONTENT -->
+        <div class="content-wrapper">
+            <main role="main" class="container-fluid">
                 @RenderBody()
             </main>
         </div>
 
+        <!-- FOOTER -->
         <footer class="main-footer">
-            <strong>Developed by Myat Linn Maung <a href="https://adminlte.io">FoodOutlet</a>.</strong>
-            <div class="float-right d-none d-sm-inline-block">
-                <b>Version</b> 1.1.0
-            </div>
+            <strong>Food Outlet</strong> - Developed by Myat Linn Maung | <b>Version</b> 1.1.0
         </footer>
 
-        <!-- Control Sidebar -->
-        <aside class="control-sidebar control-sidebar-dark">
-            <!-- Control sidebar content goes here -->
-        </aside>
-        <!-- /.control-sidebar -->
     </div>
 
+    <!-- Scripts -->
+    <script src="~/plugins/jquery/jquery.min.js"></script>
     <script src="~/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        $(document).ready(function() {
+            // Get table name from URL
+            function updateTableName() {
+                const url = window.location.pathname;
+                const match = url.match(/table\/(\d+)/i);
+                if (match) {
+                    $('#tableNameDisplay').text('Table ' + match[1]);
+                }
+            }
+
+            updateTableName();
+
+            // Filter Panel Toggle
+            $('#filterToggleBtn').on('click', function() {
+                $('#filterPanel').toggleClass('active');
+                $('#filterOverlay').toggleClass('active');
+            });
+
+            $('#filterCloseBtn').on('click', function() {
+                $('#filterPanel').removeClass('active');
+                $('#filterOverlay').removeClass('active');
+            });
+
+            $('#filterOverlay').on('click', function() {
+                $('#filterPanel').removeClass('active');
+                $('#filterOverlay').removeClass('active');
+            });
+
+            // Filter Button Toggle
+            $('.filter-btn-toggle').on('click', function(e) {
+                e.preventDefault();
+                $(this).toggleClass('active');
+                
+                // Get selected filters
+                const selectedFilters = {
+                    categories: $('.filter-btn-toggle[data-filter="category"].active').map(function() {
+                        return $(this).data('value');
+                    }).get(),
+                    priceRanges: $('.filter-btn-toggle[data-filter="price"].active').map(function() {
+                        return $(this).data('value');
+                    }).get()
+                };
+
+                // Trigger filter event for content page
+                $(document).trigger('filtersChanged', [selectedFilters]);
+                console.log('Applied Filters:', selectedFilters);
+            });
+
+            // Search Functionality
+            $('#searchForm').on('submit', function(e) {
+                e.preventDefault();
+                const searchTerm = $('#searchInput').val().trim();
+                if (searchTerm) {
+                    $(document).trigger('searchSubmitted', [searchTerm]);
+                    console.log('Search:', searchTerm);
+                }
+            });
+        });
+    </script>
+
     @RenderSection("Scripts", required: false)
 </body>
 </html>

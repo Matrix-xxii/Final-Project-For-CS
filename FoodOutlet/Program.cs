@@ -1,10 +1,10 @@
-using FoodOutlet.AppCode;
-
+﻿using FoodOutlet.AppCode;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddScoped<IDbConnectionFactory, MySqlConnectionFactory>();
 builder.Services.AddScoped<Staff>();
+builder.Services.AddScoped<ImageProcessingService>(); // ← ADD THIS LINE
 
 
 // Add services to the container.

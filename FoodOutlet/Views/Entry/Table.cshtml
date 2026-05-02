@@ -1,98 +1,487 @@
-﻿@model List<dynamic>
-@{
+﻿@{
+    ViewData["Title"] = "Table Order";
     Layout = "~/Views/Shared/_LayoutWebsite.cshtml";
-    var tableNumber = ViewData["TableNumber"] ?? 0;
 }
 
-<div class="container-fluid p-0 table-page-container">
-    <!-- Header -->
-    <div class="table-page-header">
-        <div class="row align-items-center">
-            <div class="col-md-4">
-                <h3 class="text-white mb-0">🍽️ Table @tableNumber</h3>
-            </div>
-            <div class="col-md-4">
-                <input type="search" class="form-control rounded-pill" placeholder="Search items..." id="searchInput">
-            </div>
-            <div class="col-md-4 text-end">
-                <button class="btn btn-warning rounded-pill me-2" type="button">Filter</button>
-                <button class="btn btn-light rounded-pill" type="button">Menu</button>
-            </div>
+<style>
+    /* Content container - respect full width from layout */
+    .container-fluid {
+        padding-left: 0;
+        padding-right: 0;
+        max-width: 100%;
+        width: 100%;
+    }
+
+    /* Add padding to wrapper instead for better control */
+    .food-grid-wrapper {
+        padding: 0 1.5rem;
+        width: 100%;
+    }
+
+    /* New Items Banner */
+    .new-items-banner {
+        background: white;
+        border-radius: 20px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        display: flex;
+        align-items: center;
+        gap: 2rem;
+        width: 100%;
+    }
+
+    .new-items-image {
+        flex-shrink: 0;
+    }
+
+    .new-items-image img {
+        width: 120px;
+        height: 120px;
+        object-fit: cover;
+        border-radius: 12px;
+    }
+
+    .new-items-content {
+        flex: 1;
+    }
+
+    .new-items-content h2 {
+        color: #c0100b;
+        font-size: 1.8rem;
+        margin: 0 0 0.5rem 0;
+        font-weight: 700;
+    }
+
+    .new-items-content p {
+        color: #333;
+        font-size: 0.95rem;
+        margin: 0;
+        font-weight: 500;
+    }
+
+    /* Food Grid */
+    .food-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 2rem;
+        margin-bottom: 2rem;
+        width: 100%;
+    }
+
+    .food-card {
+        background: white;
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .food-card:hover {
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+        transform: translateY(-2px);
+    }
+
+    .food-card-image {
+        width: 100%;
+        height: 180px;
+        overflow: hidden;
+        background: #f5f5f5;
+    }
+
+    .food-card-image img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .food-card-body {
+        padding: 1.5rem;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .food-card-header {
+        display: flex;
+        align-items: start;
+        justify-content: space-between;
+        margin-bottom: 1rem;
+        gap: 0.5rem;
+    }
+
+    .food-card-title {
+        color: #333;
+        font-weight: 600;
+        font-size: 1rem;
+        margin: 0;
+        flex: 1;
+    }
+
+    .food-card-price {
+        color: #999;
+        font-size: 0.9rem;
+        min-width: max-content;
+        font-weight: 600;
+    }
+
+    .food-card-info-btn {
+        background: #333;
+        border: none;
+        color: white;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        font-size: 0.8rem;
+        transition: all 0.2s ease;
+        flex-shrink: 0;
+    }
+
+    .food-card-info-btn:hover {
+        background: #c0100b;
+    }
+
+    .food-card-category {
+        background: #e8e8e8;
+        color: #666;
+        padding: 0.4rem 0.8rem;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        display: inline-block;
+        margin-bottom: 1rem;
+        width: fit-content;
+    }
+
+    .food-card-quantity {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+
+    .qty-btn {
+        background: #333;
+        border: none;
+        color: white;
+        width: 32px;
+        height: 32px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 1rem;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    .qty-btn:hover {
+        background: #c0100b;
+    }
+
+    .qty-display {
+        flex: 1;
+        text-align: center;
+        color: #333;
+        font-weight: 500;
+        min-width: 30px;
+    }
+
+    .food-card-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .food-card-actions button {
+        flex: 1;
+        padding: 0.75rem;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 0.85rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .btn-add-cart {
+        background: #e8e8e8;
+        color: #333;
+    }
+
+    .btn-add-cart:hover {
+        background: #d0d0d0;
+    }
+
+    .btn-order-now {
+        background: #c0100b;
+        color: white;
+    }
+
+    .btn-order-now:hover {
+        background: #a00a08;
+    }
+
+    /* Empty state */
+    .empty-state {
+        text-align: center;
+        padding: 3rem 2rem;
+        color: #999;
+    }
+
+    .empty-state i {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+
+    .empty-state p {
+        font-size: 1.1rem;
+        margin: 0.5rem 0;
+    }
+
+    /* Responsive Design */
+    @@media (max-width: 1024px) {
+        .food-grid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.5rem;
+        }
+
+        .food-grid-wrapper {
+            padding: 0 1rem;
+        }
+
+        .new-items-banner {
+            padding: 1rem;
+            gap: 1.5rem;
+        }
+
+        .new-items-image img {
+            width: 100px;
+            height: 100px;
+        }
+
+        .new-items-content h2 {
+            font-size: 1.5rem;
+        }
+    }
+
+    @@media (max-width: 768px) {
+        .food-grid {
+            grid-template-columns: 1fr;
+            gap: 1rem;
+        }
+
+        .new-items-banner {
+            flex-direction: column;
+            text-align: center;
+            padding: 1rem;
+        }
+
+        .new-items-image {
+            width: 100%;
+        }
+
+        .new-items-image img {
+            width: 100%;
+            max-width: 150px;
+            height: auto;
+        }
+
+        .food-grid-wrapper {
+            padding: 0 0.75rem;
+        }
+    }
+
+    @@media (max-width: 480px) {
+        .food-grid {
+            gap: 0.75rem;
+        }
+
+        .food-card-body {
+            padding: 1rem;
+        }
+
+        .food-card-title {
+            font-size: 0.9rem;
+        }
+
+        .new-items-content h2 {
+            font-size: 1.2rem;
+        }
+
+        .new-items-content p {
+            font-size: 0.85rem;
+        }
+
+        .food-grid-wrapper {
+            padding: 0 0.5rem;
+        }
+    }
+</style>
+
+<!-- Food Grid Wrapper -->
+<div class="food-grid-wrapper">
+    <!-- New Items Banner -->
+    <div class="new-items-banner">
+        <div class="new-items-image">
+            <img src="~/img/sticky-rice.jpg" alt="New Items">
+        </div>
+        <div class="new-items-content">
+            <h2>New Items</h2>
+            <p>Sticky rice in Bamboo</p>
         </div>
     </div>
 
-    <!-- Menu Items Grid -->
-    <div class="p-4">
-        <div class="row g-4" id="itemsGrid">
-            @foreach(var item in Model)
+    <!-- Food Items Grid -->
+    <div class="food-grid" id="foodGrid">
+        <!-- Dynamic recipes loaded from database -->
+        @if (Model != null && Model.Count > 0)
+        {
+            @foreach (var item in Model)
             {
-                <div class="col-lg-6 col-md-12 menu-item" data-item-name="@item.recipe_name @item.category_name">
-                    <div class="card rounded-4 shadow-sm" style="border: none; overflow: hidden;">
-                        <div class="row g-0">
-                            <div class="col-md-4">
-                                <div class="img-frame img-frame-table">
-                                    <img src="@item.recipe_img" alt="@item.recipe_name" class="img-fluid">
-                                </div>
-                            </div>
-                            <div class="col-md-8">
-                                <div class="card-body">
-                                    <h5 class="card-title text-dark">
-                                        @item.recipe_name
-                                        <button class="btn btn-sm btn-dark rounded-circle ms-2" type="button" style="width: 30px; height: 30px; padding: 0; display: flex; align-items: center; justify-content: center;">
-                                            <i class="fas fa-info"></i>
-                                        </button>
-                                    </h5>
-                                    <p class="card-text text-muted small">@item.category_name</p>
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <span class="fw-bold text-dark">$@item.price</span>
-                                        <div class="btn-group" role="group">
-                                            <button type="button" class="btn btn-dark btn-sm qty-minus">−</button>
-                                            <input type="text" class="form-control form-control-sm text-center qty-input" value="0">
-                                            <button type="button" class="btn btn-dark btn-sm qty-plus">+</button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                <div class="food-card" data-recipe-id="@item.id">
+                    <div class="food-card-image">
+                        <img src="@item.recipe_img" alt="@item.recipe_name" onerror="this.src='/img/placeholder.png'">
+                    </div>
+                    <div class="food-card-body">
+                        <div class="food-card-header">
+                            <h3 class="food-card-title">@item.recipe_name</h3>
+                            <span class="food-card-price">₨@item.price</span>
+                            <button class="food-card-info-btn" title="More info" onclick="showRecipeInfo('@item.id', '@item.recipe_name', '@(item.description?.Replace("'", "\\'") ?? "")')">
+                                <i class="fas fa-info"></i>
+                            </button>
                         </div>
-                        <div class="card-footer bg-white border-0 d-flex gap-2">
-                            <button class="btn btn-light rounded-pill flex-grow-1 btn-add-cart" type="button">Add To Cart</button>
-                            <button class="btn btn-light rounded-pill flex-grow-1 btn-order-now" type="button">Order Now</button>
+
+                        <span class="food-card-category">@item.category_name</span>
+
+                        <div class="food-card-quantity">
+                            <button class="qty-btn qty-decrease" data-item-id="@item.id">
+                                <i class="fas fa-minus"></i>
+                            </button>
+                            <span class="qty-display" data-item-id="@item.id">0</span>
+                            <button class="qty-btn qty-increase" data-item-id="@item.id">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+
+                        <div class="food-card-actions">
+                            <button class="btn-add-cart" data-item-id="@item.id" data-recipe-name="@item.recipe_name">Add To Cart</button>
+                            <button class="btn-order-now" data-item-id="@item.id" data-recipe-name="@item.recipe_name">Order Now</button>
                         </div>
                     </div>
                 </div>
             }
-        </div>
-        @if(Model.Count == 0)
+        }
+        else
         {
-            <div class="text-center text-muted p-5">
-                <p>No items available</p>
+            <div class="empty-state" style="grid-column: 1 / -1;">
+                <i class="fas fa-inbox"></i>
+                <p>No recipes available</p>
+                <small>Please check back later</small>
             </div>
         }
     </div>
 </div>
 
 <script>
-    document.getElementById('searchInput').addEventListener('keyup', function(e) {
-        var search = e.target.value.toLowerCase().trim();
-        var items = document.querySelectorAll('.menu-item');
-        items.forEach(function(item) {
-            var name = item.getAttribute('data-item-name').toLowerCase();
-            item.classList.toggle('hidden', search && !name.includes(search));
+    $(document).ready(function() {
+        // Track quantities
+        const quantities = {};
+
+        // Quantity controls
+        $(document).on('click', '.qty-increase', function() {
+            const itemId = $(this).data('item-id');
+            quantities[itemId] = (quantities[itemId] || 0) + 1;
+            updateQtyDisplay(itemId);
+        });
+
+        $(document).on('click', '.qty-decrease', function() {
+            const itemId = $(this).data('item-id');
+            quantities[itemId] = Math.max(0, (quantities[itemId] || 0) - 1);
+            updateQtyDisplay(itemId);
+        });
+
+        function updateQtyDisplay(itemId) {
+            $(`.qty-display[data-item-id="${itemId}"]`).text(quantities[itemId] || 0);
+        }
+
+        // Add to cart
+        $(document).on('click', '.btn-add-cart', function() {
+            const itemId = $(this).data('item-id');
+            const recipeName = $(this).data('recipe-name');
+            const qty = quantities[itemId] || 0;
+            if (qty > 0) {
+                alert(`Added ${qty} x ${recipeName} to cart`);
+                // TODO: Implement actual cart functionality
+            } else {
+                alert('Please select quantity');
+            }
+        });
+
+        // Order now
+        $(document).on('click', '.btn-order-now', function() {
+            const itemId = $(this).data('item-id');
+            const recipeName = $(this).data('recipe-name');
+            const qty = quantities[itemId] || 0;
+            if (qty > 0) {
+                alert(`Ordering ${qty} x ${recipeName}`);
+                // TODO: Implement actual order functionality
+            } else {
+                alert('Please select quantity');
+            }
+        });
+
+        // Listen for filter events from navbar
+        $(document).on('filtersChanged', function(e, filters) {
+            console.log('Content received filters:', filters);
+            filterRecipes(filters);
+        });
+
+        $(document).on('searchSubmitted', function(e, searchTerm) {
+            console.log('Content received search:', searchTerm);
+            searchRecipes(searchTerm);
         });
     });
 
-    document.querySelectorAll('.qty-plus').forEach(btn => btn.addEventListener('click', function() {
-        var input = this.closest('.btn-group').querySelector('.qty-input');
-        input.value = parseInt(input.value || 0) + 1;
-    }));
+    // Show recipe information modal/alert
+    function showRecipeInfo(id, name, description) {
+        alert(`${name}\n\nDescription: ${description || 'No description available'}`);
+    }
 
-    document.querySelectorAll('.qty-minus').forEach(btn => btn.addEventListener('click', function() {
-        var input = this.closest('.btn-group').querySelector('.qty-input');
-        var current = parseInt(input.value || 0);
-        if(current > 0) input.value = current - 1;
-    }));
+    // Filter recipes by category and price
+    function filterRecipes(filters) {
+        console.log('Filtering by:', filters);
+        
+        if (!filters.categories && !filters.priceRanges || 
+            (filters.categories.length === 0 && filters.priceRanges.length === 0)) {
+            // Show all if no filters selected
+            $('.food-card').show();
+            return;
+        }
 
-    document.querySelectorAll('.btn-add-cart, .btn-order-now').forEach(btn => btn.addEventListener('click', function() {
-        alert(this.classList.contains('btn-add-cart') ? 'Added to cart' : 'Order placed');
-    }));
+        // TODO: Implement filter logic based on your data structure
+        // For now, just log the filters
+    }
+
+    // Search recipes
+    function searchRecipes(searchTerm) {
+        const term = searchTerm.toLowerCase();
+        
+        $('.food-card').each(function() {
+            const title = $(this).find('.food-card-title').text().toLowerCase();
+            const description = $(this).find('.food-card-category').text().toLowerCase();
+            
+            if (title.includes(term) || description.includes(term)) {
+                $(this).show();
+            } else {
+                $(this).hide();
+            }
+        });
+    }
 </script>

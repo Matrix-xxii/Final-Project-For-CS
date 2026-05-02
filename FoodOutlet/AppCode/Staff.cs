@@ -63,26 +63,29 @@ namespace FoodOutlet.AppCode
                     LEFT JOIN roles ro ON r.role_id = ro.id
                     LEFT JOIN resigns rs ON r.id = rs.registration_id
                     ORDER BY r.id";
+                
                 using (MySqlCommand cmd = new MySqlCommand(query, conn))
-                using (MySqlDataReader rst = cmd.ExecuteReader())
                 {
-                    while (rst.Read())
+                    using (MySqlDataReader rst = cmd.ExecuteReader())
                     {
-                        staffList.Add(new Models.Staff
+                        while (rst.Read())
                         {
-                            id = rst["id"] == DBNull.Value ? 0 : Convert.ToInt32(rst["id"]),
-                            name = rst["name"]?.ToString() ?? "",
-                            // FIX Problem 2: Use null coalescing operator
-                            email = rst["email"]?.ToString() ?? "",
-                            // FIX Problem 3: Use null coalescing operator
-                            phone_no = rst["phone_no"]?.ToString() ?? "",
-                            // FIX Problem 4: Use null coalescing operator
-                            address = rst["address"]?.ToString() ?? "",
-                            role_id = rst["role_id"] == DBNull.Value ? 0 : Convert.ToInt32(rst["role_id"]),
-                            photo = rst["photo"]?.ToString() ?? "",
-                            role_name = rst["role_name"]?.ToString() ?? "",
-                            status = rst["status"]?.ToString() ?? ""
-                        });
+                            // Simply retrieve the photo path from database
+                            string photoPath = rst["photo"]?.ToString() ?? "";
+
+                            staffList.Add(new Models.Staff
+                            {
+                                id = rst["id"] == DBNull.Value ? 0 : Convert.ToInt32(rst["id"]),
+                                name = rst["name"]?.ToString() ?? "",
+                                email = rst["email"]?.ToString() ?? "",
+                                phone_no = rst["phone_no"]?.ToString() ?? "",
+                                address = rst["address"]?.ToString() ?? "",
+                                role_id = rst["role_id"] == DBNull.Value ? 0 : Convert.ToInt32(rst["role_id"]),
+                                photo = photoPath,
+                                role_name = rst["role_name"]?.ToString() ?? "",
+                                status = rst["status"]?.ToString() ?? ""
+                            });
+                        }
                     }
                 }
             }
@@ -303,6 +306,7 @@ ORDER BY r.recipe_name, r.id";
         }
 
         // FIX Problem 10: Change return type to nullable (Models.Staff?)
+        // FIXED: Added photo field to retrieval
         public Models.Staff? GetStaffById(int id)
         {
             using (MySqlConnection conn = _connectionFactory.CreateConnection())
@@ -315,20 +319,46 @@ ORDER BY r.recipe_name, r.id";
                     {
                         if (rst.Read())
                         {
+                            string photoData = "";
+                            
+                            // Safely retrieve photo data
+                            int photoOrdinal = rst.GetOrdinal("photo");
+                            if (!rst.IsDBNull(photoOrdinal))
+                            {
+                                try
+                                {
+                                    photoData = rst.GetString(photoOrdinal) ?? "";
+                                }
+                                catch
+                                {
+                                    // If string conversion fails, try as byte array
+                                    try
+                                    {
+                                        byte[] photoBytes = rst.GetFieldValue<byte[]>(photoOrdinal);
+                                        if (photoBytes != null && photoBytes.Length > 0)
+                                        {
+                                            photoData = Convert.ToBase64String(photoBytes);
+                                            photoData = "data:image/jpeg;base64," + photoData;
+                                        }
+                                    }
+                                    catch
+                                    {
+                                        photoData = "";
+                                    }
+                                }
+                            }
+
                             return new Models.Staff
                             {
                                 id = rst["id"] == DBNull.Value ? 0 : Convert.ToInt32(rst["id"]),
                                 name = rst["name"]?.ToString() ?? "",
-                                // FIX Problem 6: Use null coalescing operator
                                 email = rst["email"]?.ToString() ?? "",
-                                // FIX Problem 7: Use null coalescing operator
                                 password = rst["password_hash"]?.ToString() ?? "",
                                 birth_of_date = rst["birth_of_date"] == DBNull.Value ? null : Convert.ToDateTime(rst["birth_of_date"]),
-                                // FIX Problem 8: Use null coalescing operator
                                 phone_no = rst["phone_no"]?.ToString() ?? "",
-                                // FIX Problem 9: Use null coalescing operator
                                 address = rst["address"]?.ToString() ?? "",
-                                role_id = rst["role_id"] == DBNull.Value ? 0 : Convert.ToInt32(rst["role_id"])
+                                role_id = rst["role_id"] == DBNull.Value ? 0 : Convert.ToInt32(rst["role_id"]),
+                                photo = photoData
                             };
                         }
                     }
@@ -345,35 +375,71 @@ ORDER BY r.recipe_name, r.id";
                 using (MySqlConnection conn = _connectionFactory.CreateConnection())
                 {
                     conn.Open();
+                    
+                    // Validate required fields
+                    if (string.IsNullOrWhiteSpace(staf.name))
+                    {
+                        msg.message = "Error: Staff name is required";
+                        return msg;
+                    }
+                    if (string.IsNullOrWhiteSpace(staf.email))
+                    {
+                        msg.message = "Error: Email is required";
+                        return msg;
+                    }
+                    if (staf.role_id <= 0)
+                    {
+                        msg.message = "Error: Role must be selected";
+                        return msg;
+                    }
+                    if (string.IsNullOrWhiteSpace(staf.password) && staf.id == 0)
+                    {
+                        msg.message = "Error: Password is required for new staff";
+                        return msg;
+                    }
+
                     if (staf.id > 0)
                     {
-                        using (MySqlCommand cmd = new MySqlCommand("UPDATE registrations SET registration_name=@name,email=@email,birth_of_date=@birth_of_date,password_hash=@password_hash,phone_no=@phone_no,address=@address,role_id=@role_id,photo=@photo WHERE id=@id", conn))
+                        // UPDATE existing staff
+                        using (MySqlCommand cmd = new MySqlCommand(
+                            "UPDATE registrations SET registration_name=@name, email=@email, birth_of_date=@birth_of_date, " +
+                            "password_hash=@password_hash, phone_no=@phone_no, address=@address, role_id=@role_id" +
+                            (string.IsNullOrEmpty(staf.photo) ? "" : ", photo=@photo") +
+                            " WHERE id=@id", conn))
                         {
                             cmd.Parameters.AddWithValue("@id", staf.id);
-                            cmd.Parameters.AddWithValue("@name", staf.name);
-                            cmd.Parameters.AddWithValue("@email", staf.email);
+                            cmd.Parameters.AddWithValue("@name", staf.name ?? "");
+                            cmd.Parameters.AddWithValue("@email", staf.email ?? "");
                             cmd.Parameters.AddWithValue("@birth_of_date", staf.birth_of_date ?? (object)DBNull.Value);
-                            cmd.Parameters.AddWithValue("@password_hash", staf.password);
-                            cmd.Parameters.AddWithValue("@phone_no", staf.phone_no);
-                            cmd.Parameters.AddWithValue("@address", staf.address);
+                            cmd.Parameters.AddWithValue("@password_hash", string.IsNullOrEmpty(staf.password) ? DBNull.Value : (object)staf.password);
+                            cmd.Parameters.AddWithValue("@phone_no", staf.phone_no ?? "");
+                            cmd.Parameters.AddWithValue("@address", staf.address ?? "");
                             cmd.Parameters.AddWithValue("@role_id", staf.role_id);
-                            cmd.Parameters.AddWithValue("@photo", staf.photo ?? "");
-                            cmd.ExecuteNonQuery();
-                            msg.message = "Success";
+                            if (!string.IsNullOrEmpty(staf.photo))
+                            {
+                                cmd.Parameters.AddWithValue("@photo", staf.photo);
+                            }
+                            
+                            int rowsAffected = cmd.ExecuteNonQuery();
+                            msg.message = rowsAffected > 0 ? "Success" : "Error: Staff not found";
                         }
                     }
                     else
                     {
-                        using (MySqlCommand cmd = new MySqlCommand("INSERT INTO registrations (registration_name,email,birth_of_date,password_hash,phone_no,address,role_id,photo) VALUES (@name,@email,@birth_of_date,@password_hash,@phone_no,@address,@role_id,@photo)", conn))
+                        // INSERT new staff
+                        using (MySqlCommand cmd = new MySqlCommand(
+                            "INSERT INTO registrations (registration_name, email, birth_of_date, password_hash, phone_no, address, role_id, photo, created_at) " +
+                            "VALUES (@name, @email, @birth_of_date, @password_hash, @phone_no, @address, @role_id, @photo, NOW())", conn))
                         {
-                            cmd.Parameters.AddWithValue("@name", staf.name);
-                            cmd.Parameters.AddWithValue("@email", staf.email);
+                            cmd.Parameters.AddWithValue("@name", staf.name ?? "");
+                            cmd.Parameters.AddWithValue("@email", staf.email ?? "");
                             cmd.Parameters.AddWithValue("@birth_of_date", staf.birth_of_date ?? (object)DBNull.Value);
-                            cmd.Parameters.AddWithValue("@password_hash", staf.password);
-                            cmd.Parameters.AddWithValue("@phone_no", staf.phone_no);
-                            cmd.Parameters.AddWithValue("@address", staf.address);
+                            cmd.Parameters.AddWithValue("@password_hash", staf.password ?? "");
+                            cmd.Parameters.AddWithValue("@phone_no", staf.phone_no ?? "");
+                            cmd.Parameters.AddWithValue("@address", staf.address ?? "");
                             cmd.Parameters.AddWithValue("@role_id", staf.role_id);
                             cmd.Parameters.AddWithValue("@photo", staf.photo ?? "");
+                            
                             cmd.ExecuteNonQuery();
                             msg.message = "Success";
                         }

@@ -1,2 +1,0 @@
-D:\MLM\Final\FoodOutlet\wwwroot\css\forms.css
-D:\MLM\Final\FoodOutlet\wwwroot\css\modern-ui.css

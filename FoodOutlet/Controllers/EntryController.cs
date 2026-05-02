@@ -11,12 +11,14 @@ namespace FoodOutlet.Controllers
         private readonly AppCode.Staff _staff;
         private readonly IWebHostEnvironment _env;
         private readonly IDbConnectionFactory _connectionFactory;
+        private readonly ImageProcessingService _imageService; // ← ADD THIS
 
-        public EntryController(AppCode.Staff staff, IWebHostEnvironment env, IDbConnectionFactory connectionFactory)
+        public EntryController(AppCode.Staff staff, IWebHostEnvironment env, IDbConnectionFactory connectionFactory, ImageProcessingService imageService)
         {
             _staff = staff;
             _env = env;
             _connectionFactory = connectionFactory;
+            _imageService = imageService; // ← ADD THIS
         }
 
         #region Existing Views
@@ -338,10 +340,7 @@ namespace FoodOutlet.Controllers
         [HttpPost("api/set_staff")]
         public Models.Message SetStaff([FromBody] Models.Staff staff)
         {
-            if (staff.id > 0)
-                return _staff.UpdateStaff(staff);
-            else
-                return _staff.SetStaff(staff);
+            return _staff.SetStaff(staff);
         }
 
         [HttpPost("api/set_category")]
@@ -476,5 +475,72 @@ namespace FoodOutlet.Controllers
         }
 
         #endregion
+
+        /// <summary>
+        /// New endpoint for uploading staff photos with automatic processing
+        /// </summary>
+        [HttpPost("api/set_staff_with_photo")]
+        public async Task<Models.Message> SetStaffWithPhoto()
+        {
+            var msg = new Models.Message();
+            
+            try
+            {
+                // Read form data
+                var id = int.TryParse(Request.Form["id"], out var staffId) ? staffId : 0;
+                var name = Request.Form["name"].ToString();
+                var email = Request.Form["email"].ToString();
+                var phone = Request.Form["phone_no"].ToString();
+                var address = Request.Form["address"].ToString();
+                var password = Request.Form["password"].ToString();
+                var roleId = int.TryParse(Request.Form["role_id"], out var rid) ? rid : 0;
+                var birthDate = Request.Form["birth_of_date"].ToString();
+
+                var staff = new Models.Staff
+                {
+                    id = id,
+                    name = name,
+                    email = email,
+                    phone_no = phone,
+                    address = address,
+                    password = password,
+                    role_id = roleId,
+                    birth_of_date = string.IsNullOrEmpty(birthDate) ? null : DateTime.Parse(birthDate)
+                };
+
+                // Handle photo upload with processing
+                var photoFile = Request.Form.Files["photoFile"];
+                if (photoFile != null && photoFile.Length > 0)
+                {
+                    try
+                    {
+                        // Process and save image (auto crop to square, resize to 300x300)
+                        staff.photo = await _imageService.ProcessAndSaveImageAsync(photoFile, "uploads/staff");
+                        
+                        Console.WriteLine($"Image processed and saved: {staff.photo}");
+                    }
+                    catch (Exception ex)
+                    {
+                        return new Models.Message { message = $"Error: {ex.Message}" };
+                    }
+                }
+                else if (id > 0)
+                {
+                    // Keep existing photo if not updating
+                    var existingStaff = _staff.GetStaffById(id);
+                    staff.photo = existingStaff?.photo ?? "";
+                }
+
+                // Save to database
+                msg = _staff.SetStaff(staff);
+            }
+            catch (Exception ex)
+            {
+                msg.message = $"Error: {ex.Message}";
+                Console.WriteLine($"SetStaffWithPhoto Exception: {ex}");
+            }
+
+            return msg;
+        }
     }
 }
