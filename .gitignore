@@ -9,3 +9,7 @@ obj/
 
 # Visual Studio
 .vs/
+
+*.user
+.vscode/obj/
+bin/
