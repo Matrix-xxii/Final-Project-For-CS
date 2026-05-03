@@ -1,15 +1,50 @@
-# Node
-node_modules/
-dist/
-build/
-
-# .NET
+# .NET Build
 bin/
 obj/
+*.dll
+*.exe
+*.pdb
+*.so
+*.dylib
 
 # Visual Studio
 .vs/
-
+.vscode/
+*.sln.iml
+*.suo
 *.user
-.vscode/obj/
-bin/
+*.userosscache
+*.sln.docstates
+
+# IDEs
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# NuGet
+*.nupkg
+.nuget/
+
+# User uploads and temp files
+FoodOutlet/wwwroot/uploads/*
+FoodOutlet/wwwroot/tableQR/*
+!FoodOutlet/wwwroot/uploads/.gitkeep
+!FoodOutlet/wwwroot/tableQR/.gitkeep
+
+# Application logs
+logs/
+*.log
+
+# Local database files (if applicable)
+*.db
+*.sqlite
+*.sqlite3
+
+# Environment files (if you use local configs)
+appsettings.local.json
+
+# Node modules (if using npm)
+node_modules/
+package-lock.json
