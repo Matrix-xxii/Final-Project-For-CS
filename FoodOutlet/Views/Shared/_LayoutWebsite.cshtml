@@ -464,7 +464,7 @@
                     <a href="#" class="dropdown-item">
                         <i class="fas fa-history"></i> Order History
                     </a>
-                    <a href="#" class="dropdown-item">
+                    <a href="#" class="dropdown-item" id="myCartLink">
                         <i class="fas fa-shopping-cart"></i> My Cart
                     </a>
                     <a href="#" class="dropdown-item">
@@ -543,6 +543,7 @@
                 const match = url.match(/table\/(\d+)/i);
                 if (match) {
                     $('#tableNameDisplay').text('Table ' + match[1]);
+                    $('#myCartLink').attr('href', `/table/${match[1]}/cart`);
                 }
             }
 

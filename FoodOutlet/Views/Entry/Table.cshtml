@@ -372,7 +372,7 @@
                         </div>
 
                         <div class="food-card-actions">
-                            <button class="btn-add-cart" data-item-id="@item.id" data-recipe-name="@item.recipe_name">Add To Cart</button>
+                            <button class="btn-add-cart" data-item-id="@item.id" data-recipe-name="@item.recipe_name" data-recipe-price="@item.price" data-recipe-img="@item.recipe_img">Add To Cart</button>
                             <button class="btn-order-now" data-item-id="@item.id" data-recipe-name="@item.recipe_name">Order Now</button>
                         </div>
                     </div>
@@ -394,7 +394,9 @@
 <script>
     const TABLE_NUMBER = @tableNumber;
     const CART_KEY = `cart_table_${TABLE_NUMBER}`;
+    const CART_SELECTION_KEY = `cart_selected_table_${TABLE_NUMBER}`;
     let cart = JSON.parse(localStorage.getItem(CART_KEY)) || {};
+    let selectedCart = JSON.parse(localStorage.getItem(CART_SELECTION_KEY)) || {};
 
     // Helper functions - must be outside $(document).ready)
     function updateQtyDisplay(itemId) {
@@ -411,6 +413,21 @@
         localStorage.setItem(CART_KEY, JSON.stringify(cart));
     }
 
+    function saveSelectedCart() {
+        localStorage.setItem(CART_SELECTION_KEY, JSON.stringify(selectedCart));
+    }
+
+    function syncSelectedItemQty(itemId) {
+        if (!selectedCart[itemId]) return;
+        const qty = cart[itemId] || 0;
+        if (qty <= 0) {
+            delete selectedCart[itemId];
+        } else {
+            selectedCart[itemId].qty = qty;
+        }
+        saveSelectedCart();
+    }
+
     $(document).ready(function() {
         // Load quantities from localStorage on page load
         loadCartFromStorage();
@@ -424,6 +441,7 @@
             cart[itemId] = qty;
             updateQtyDisplay(itemId);
             saveCartToStorage();
+            syncSelectedItemQty(itemId);
         });
 
         // Quantity controls - DECREASE
@@ -435,14 +453,25 @@
             cart[itemId] = qty;
             updateQtyDisplay(itemId);
             saveCartToStorage();
+            syncSelectedItemQty(itemId);
         });
 
         // Add to cart
         $(document).on('click', '.btn-add-cart', function() {
             const itemId = $(this).data('item-id');
             const recipeName = $(this).data('recipe-name');
+            const recipePrice = parseFloat($(this).data('recipe-price')) || 0;
+            const recipeImg = $(this).data('recipe-img') || '/img/placeholder.png';
             const qty = cart[itemId] || 0;
             if (qty > 0) {
+                selectedCart[itemId] = {
+                    itemId: parseInt(itemId),
+                    recipeName: recipeName,
+                    recipePrice: recipePrice,
+                    recipeImg: recipeImg,
+                    qty: qty
+                };
+                saveSelectedCart();
                 alert(`✓ Added ${qty} x ${recipeName} to cart`);
             } else {
                 alert('⚠ Please select quantity first');

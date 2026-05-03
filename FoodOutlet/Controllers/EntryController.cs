@@ -309,6 +309,25 @@ namespace FoodOutlet.Controllers
             return View("~/Views/Entry/Table.cshtml", converted);
         }
 
+        // GET: /table/{tableNumber}/cart - Customer Cart Page
+        [HttpGet("table/{tableNumber}/cart")]
+        public IActionResult Cart(int tableNumber)
+        {
+            var conn = _connectionFactory.CreateConnection();
+            conn.Open();
+
+            var chkCmd = new MySqlCommand("SELECT COUNT(*) FROM `tables` WHERE table_number = @tn", conn);
+            chkCmd.Parameters.AddWithValue("@tn", tableNumber);
+            var cnt = Convert.ToInt32(chkCmd.ExecuteScalar());
+            conn.Close();
+
+            if (cnt == 0)
+                return NotFound();
+
+            ViewData["TableNumber"] = tableNumber;
+            return View("~/Views/Entry/Cart.cshtml");
+        }
+
         #endregion
 
         #region Existing API Endpoints (unchanged)

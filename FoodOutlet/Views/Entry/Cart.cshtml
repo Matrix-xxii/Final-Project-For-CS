@@ -1,0 +1,198 @@
+@{
+    ViewData["Title"] = "My Cart";
+    Layout = "~/Views/Shared/_LayoutWebsite.cshtml";
+    int tableNumber = ViewData["TableNumber"] != null ? (int)ViewData["TableNumber"] : 0;
+}
+
+<style>
+    .cart-wrap {
+        max-width: 980px;
+        margin: 0 auto 1.5rem auto;
+        background: #fff;
+        border-radius: 30px;
+        padding: 1.25rem 1.5rem;
+    }
+
+    .cart-row {
+        display: grid;
+        grid-template-columns: 72px 1fr auto auto auto auto;
+        align-items: center;
+        gap: 1rem;
+        padding: 0.9rem 0;
+        border-bottom: 1px solid #f0f0f0;
+    }
+
+    .cart-row:last-child {
+        border-bottom: none;
+    }
+
+    .cart-img {
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        object-fit: cover;
+    }
+
+    .cart-name {
+        font-weight: 700;
+        font-size: 1.1rem;
+    }
+
+    .cart-price,
+    .cart-total-price {
+        min-width: 90px;
+        font-weight: 600;
+    }
+
+    .cart-qty-box {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .qty-btn {
+        border: none;
+        width: 28px;
+        height: 28px;
+        border-radius: 16px;
+        background: #111;
+        color: #fff;
+        cursor: pointer;
+    }
+
+    .qty-pill {
+        min-width: 36px;
+        text-align: center;
+        background: #f0f0f0;
+        border-radius: 12px;
+        padding: 0.2rem 0.5rem;
+        font-weight: 700;
+    }
+
+    .remove-btn {
+        border: none;
+        background: transparent;
+        color: #ef3e3e;
+        font-size: 1.6rem;
+        cursor: pointer;
+        line-height: 1;
+    }
+
+    .cart-summary {
+        margin-top: 1rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-top: 4px solid #ffe31a;
+        padding-top: 1rem;
+    }
+
+    .summary-total {
+        font-size: 1.4rem;
+        font-weight: 800;
+    }
+
+    .empty-cart {
+        text-align: center;
+        padding: 2rem 1rem;
+        color: #777;
+    }
+</style>
+
+<div class="cart-wrap">
+    <div id="cartRows"></div>
+    <div class="cart-summary">
+        <div class="summary-total">Total: <span id="grandTotal">₨0.00</span></div>
+        <button class="btn btn-danger" id="backMenuBtn">Back To Menu</button>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    const TABLE_NUMBER = @tableNumber;
+    const CART_KEY = `cart_table_${TABLE_NUMBER}`;
+    const CART_SELECTION_KEY = `cart_selected_table_${TABLE_NUMBER}`;
+    let cart = JSON.parse(localStorage.getItem(CART_KEY)) || {};
+    let selectedCart = JSON.parse(localStorage.getItem(CART_SELECTION_KEY)) || {};
+
+    function saveAll() {
+        localStorage.setItem(CART_KEY, JSON.stringify(cart));
+        localStorage.setItem(CART_SELECTION_KEY, JSON.stringify(selectedCart));
+    }
+
+    function currency(v) {
+        return `₨${Number(v || 0).toFixed(2)}`;
+    }
+
+    function buildRow(item) {
+        const linePrice = (item.recipePrice || 0) * (item.qty || 0);
+        return `
+            <div class="cart-row" data-item-id="${item.itemId}">
+                <img class="cart-img" src="${item.recipeImg || '/img/placeholder.png'}" alt="${item.recipeName}" onerror="this.src='/img/placeholder.png'">
+                <div class="cart-name">${item.recipeName}</div>
+                <div class="cart-price">${currency(item.recipePrice)}</div>
+                <div class="cart-qty-box">
+                    <button class="qty-btn cart-dec" data-item-id="${item.itemId}">-</button>
+                    <span class="qty-pill">${item.qty}</span>
+                    <button class="qty-btn cart-inc" data-item-id="${item.itemId}">+</button>
+                </div>
+                <div class="cart-total-price">${currency(linePrice)}</div>
+                <button class="remove-btn cart-remove" title="Remove" data-item-id="${item.itemId}">&times;</button>
+            </div>
+        `;
+    }
+
+    function renderCart() {
+        const rows = Object.values(selectedCart).filter(v => (v.qty || 0) > 0);
+        const $rows = $('#cartRows');
+        if (rows.length === 0) {
+            $rows.html('<div class="empty-cart">Your cart is empty.</div>');
+            $('#grandTotal').text(currency(0));
+            return;
+        }
+
+        $rows.html(rows.map(buildRow).join(''));
+        const total = rows.reduce((sum, r) => sum + ((r.recipePrice || 0) * (r.qty || 0)), 0);
+        $('#grandTotal').text(currency(total));
+    }
+
+    function updateQty(itemId, delta) {
+        const current = cart[itemId] || 0;
+        const next = Math.max(0, current + delta);
+        cart[itemId] = next;
+
+        if (!selectedCart[itemId]) return;
+        if (next === 0) {
+            delete selectedCart[itemId];
+        } else {
+            selectedCart[itemId].qty = next;
+        }
+        saveAll();
+        renderCart();
+    }
+
+    $(document).ready(function() {
+        renderCart();
+
+        $(document).on('click', '.cart-inc', function() {
+            updateQty($(this).data('item-id'), 1);
+        });
+
+        $(document).on('click', '.cart-dec', function() {
+            updateQty($(this).data('item-id'), -1);
+        });
+
+        $(document).on('click', '.cart-remove', function() {
+            const itemId = $(this).data('item-id');
+            cart[itemId] = 0;
+            delete selectedCart[itemId];
+            saveAll();
+            renderCart();
+        });
+
+        $('#backMenuBtn').on('click', function() {
+            window.location.href = `/table/${TABLE_NUMBER}`;
+        });
+    });
+</script>
+}
