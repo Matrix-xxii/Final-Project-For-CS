@@ -177,6 +177,8 @@ namespace FoodOutlet.Controllers
                 insCmd.Parameters.AddWithValue("@qr", relativePath);
                 insCmd.ExecuteNonQuery();
 
+                _staff.EnsureTableListRowForRegisteredTable(table_number);
+
                 conn.Close();
 
                 TempData["Success"] = $"Table #{table_number} created successfully. QR code generated and ready to scan!";
@@ -433,6 +435,12 @@ namespace FoodOutlet.Controllers
         {
             int id = payload.id;
             return _staff.DeleteInventory(id);
+        }
+
+        [HttpPost("api/create_order")]
+        public Models.Message CreateOrder([FromBody] Models.CreateOrderRequest request)
+        {
+            return _staff.CreateOrder(request.table_number, request.items);
         }
 
         [HttpGet("api/get_counts")]

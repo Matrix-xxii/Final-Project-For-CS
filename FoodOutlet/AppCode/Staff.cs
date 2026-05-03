@@ -926,5 +926,176 @@ ORDER BY r.recipe_name, r.id";
             // Default: return as-is (might be a full URL or already correct)
             return imagePath;
         }
+
+        #region Order Management
+
+        /// <summary>
+        /// FK on Order / order_detail references table_lists.id (not tables.id).
+        /// Maps a QR-registered table_number to a table_lists row, creating one if needed.
+        /// </summary>
+        private int ResolveTableListIdForOrder(int tableNumber, MySqlConnection conn)
+        {
+            using (var verify = new MySqlCommand("SELECT 1 FROM `tables` WHERE table_number = @tn LIMIT 1", conn))
+            {
+                verify.Parameters.AddWithValue("@tn", tableNumber);
+                var tableRowExists = verify.ExecuteScalar() != null;
+                if (!tableRowExists)
+                    return 0;
+            }
+
+            try
+            {
+                using (var byNum = new MySqlCommand("SELECT id FROM `table_lists` WHERE table_number = @tn LIMIT 1", conn))
+                {
+                    byNum.Parameters.AddWithValue("@tn", tableNumber);
+                    var o = byNum.ExecuteScalar();
+                    if (o != null)
+                        return Convert.ToInt32(o);
+                }
+            }
+            catch (MySqlException)
+            {
+                // Schemas that only have table_name (no table_number column)
+            }
+
+            string[] nameCandidates = { tableNumber.ToString(), $"Table {tableNumber}" };
+            foreach (var name in nameCandidates)
+            {
+                using (var cmd = new MySqlCommand("SELECT id FROM `table_lists` WHERE table_name = @n LIMIT 1", conn))
+                {
+                    cmd.Parameters.AddWithValue("@n", name);
+                    var o = cmd.ExecuteScalar();
+                    if (o != null)
+                        return Convert.ToInt32(o);
+                }
+            }
+
+            using (var ins = new MySqlCommand("INSERT INTO `table_lists` (table_name) VALUES (@n)", conn))
+            {
+                ins.Parameters.AddWithValue("@n", tableNumber.ToString());
+                ins.ExecuteNonQuery();
+            }
+
+            using (var lid = new MySqlCommand("SELECT LAST_INSERT_ID()", conn))
+            {
+                return Convert.ToInt32(lid.ExecuteScalar());
+            }
+        }
+
+        private int ResolveInitialStatusId(MySqlConnection conn)
+        {
+            using (var byId = new MySqlCommand("SELECT id FROM `status` WHERE id = 1 LIMIT 1", conn))
+            {
+                var existing = byId.ExecuteScalar();
+                if (existing != null)
+                    return 1;
+            }
+
+            using (var byName = new MySqlCommand("SELECT id FROM `status` WHERE LOWER(name) IN ('pending','new','ordered') ORDER BY id ASC LIMIT 1", conn))
+            {
+                var named = byName.ExecuteScalar();
+                if (named != null)
+                {
+                    return Convert.ToInt32(named);
+                }
+            }
+
+            using (var ins = new MySqlCommand("INSERT INTO `status` (name) VALUES ('Pending')", conn))
+            {
+                ins.ExecuteNonQuery();
+            }
+            using (var lid = new MySqlCommand("SELECT LAST_INSERT_ID()", conn))
+            {
+                return Convert.ToInt32(lid.ExecuteScalar());
+            }
+        }
+
+        /// <summary>
+        /// Call after inserting into `tables` so Order FK (table_lists) has a matching row.
+        /// </summary>
+        public void EnsureTableListRowForRegisteredTable(int tableNumber)
+        {
+            try
+            {
+                using (var conn = _connectionFactory.CreateConnection())
+                {
+                    conn.Open();
+                    var id = ResolveTableListIdForOrder(tableNumber, conn);
+                    if (id == 0)
+                        Console.WriteLine("EnsureTableListRowForRegisteredTable: no tables row for #" + tableNumber);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("EnsureTableListRowForRegisteredTable: " + ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Create order with items
+        /// </summary>
+        public Message CreateOrder(int tableNumber, List<Models.OrderItem> items)
+        {
+            var msg = new Message();
+            if (items == null || items.Count == 0)
+            {
+                msg.message = "No items to order";
+                return msg;
+            }
+
+            try
+            {
+                using (var conn = _connectionFactory.CreateConnection())
+                {
+                    conn.Open();
+
+                    int tableId = ResolveTableListIdForOrder(tableNumber, conn);
+                    if (tableId == 0)
+                    {
+                        msg.message = "Invalid table number";
+                        return msg;
+                    }
+                    var statusId = ResolveInitialStatusId(conn);
+
+                    // Create order record
+                    using (var cmd = new MySqlCommand("INSERT INTO `Order` (table_id, status) VALUES (@tid, 'Pending')", conn))
+                    {
+                        cmd.Parameters.AddWithValue("@tid", tableId);
+                        cmd.ExecuteNonQuery();
+                    }
+
+                    // Get the last inserted order ID (optional, if you need it)
+                    int orderId = 0;
+                    using (var cmd = new MySqlCommand("SELECT LAST_INSERT_ID()", conn))
+                    {
+                        orderId = Convert.ToInt32(cmd.ExecuteScalar());
+                    }
+
+                    // Insert each item as order detail
+                    foreach (var item in items)
+                    {
+                        using (var cmd = new MySqlCommand("INSERT INTO order_detail (table_id, recipe_id, qty, status_id) VALUES (@tid, @rid, @qty, @sid)", conn))
+                        {
+                            cmd.Parameters.AddWithValue("@tid", tableId);
+                            cmd.Parameters.AddWithValue("@rid", item.recipe_id);
+                            cmd.Parameters.AddWithValue("@qty", item.qty);
+                            cmd.Parameters.AddWithValue("@sid", statusId);
+                            cmd.ExecuteNonQuery();
+                        }
+                    }
+                }
+
+                msg.message = "Success";
+            }
+            catch (Exception ex)
+            {
+                msg.message = "Error: " + ex.Message;
+                Console.WriteLine("Order creation error: " + ex.Message);
+            }
+
+            return msg;
+        }
+
+        #endregion
     }
 }

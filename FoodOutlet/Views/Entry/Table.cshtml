@@ -1,6 +1,7 @@
 ﻿@{
     ViewData["Title"] = "Table Order";
     Layout = "~/Views/Shared/_LayoutWebsite.cshtml";
+    int tableNumber = ViewData["TableNumber"] != null ? (int)ViewData["TableNumber"] : 0;
 }
 
 <style>
@@ -389,38 +390,62 @@
     </div>
 </div>
 
+@section Scripts {
 <script>
+    const TABLE_NUMBER = @tableNumber;
+    const CART_KEY = `cart_table_${TABLE_NUMBER}`;
+    let cart = JSON.parse(localStorage.getItem(CART_KEY)) || {};
+
+    // Helper functions - must be outside $(document).ready)
+    function updateQtyDisplay(itemId) {
+        $(`.qty-display[data-item-id="${itemId}"]`).text(cart[itemId] || 0);
+    }
+
+    function loadCartFromStorage() {
+        Object.keys(cart).forEach(itemId => {
+            updateQtyDisplay(itemId);
+        });
+    }
+
+    function saveCartToStorage() {
+        localStorage.setItem(CART_KEY, JSON.stringify(cart));
+    }
+
     $(document).ready(function() {
-        // Track quantities
-        const quantities = {};
+        // Load quantities from localStorage on page load
+        loadCartFromStorage();
 
-        // Quantity controls
-        $(document).on('click', '.qty-increase', function() {
+        // Quantity controls - INCREASE
+        $(document).on('click', '.qty-increase', function(e) {
+            e.preventDefault();
             const itemId = $(this).data('item-id');
-            quantities[itemId] = (quantities[itemId] || 0) + 1;
+            console.log('Increase clicked for item:', itemId);
+            const qty = (cart[itemId] || 0) + 1;
+            cart[itemId] = qty;
             updateQtyDisplay(itemId);
+            saveCartToStorage();
         });
 
-        $(document).on('click', '.qty-decrease', function() {
+        // Quantity controls - DECREASE
+        $(document).on('click', '.qty-decrease', function(e) {
+            e.preventDefault();
             const itemId = $(this).data('item-id');
-            quantities[itemId] = Math.max(0, (quantities[itemId] || 0) - 1);
+            console.log('Decrease clicked for item:', itemId);
+            const qty = Math.max(0, (cart[itemId] || 0) - 1);
+            cart[itemId] = qty;
             updateQtyDisplay(itemId);
+            saveCartToStorage();
         });
-
-        function updateQtyDisplay(itemId) {
-            $(`.qty-display[data-item-id="${itemId}"]`).text(quantities[itemId] || 0);
-        }
 
         // Add to cart
         $(document).on('click', '.btn-add-cart', function() {
             const itemId = $(this).data('item-id');
             const recipeName = $(this).data('recipe-name');
-            const qty = quantities[itemId] || 0;
+            const qty = cart[itemId] || 0;
             if (qty > 0) {
-                alert(`Added ${qty} x ${recipeName} to cart`);
-                // TODO: Implement actual cart functionality
+                alert(`✓ Added ${qty} x ${recipeName} to cart`);
             } else {
-                alert('Please select quantity');
+                alert('⚠ Please select quantity first');
             }
         });
 
@@ -428,12 +453,11 @@
         $(document).on('click', '.btn-order-now', function() {
             const itemId = $(this).data('item-id');
             const recipeName = $(this).data('recipe-name');
-            const qty = quantities[itemId] || 0;
+            const qty = cart[itemId] || 0;
             if (qty > 0) {
-                alert(`Ordering ${qty} x ${recipeName}`);
-                // TODO: Implement actual order functionality
+                submitOrderNow(parseInt(itemId), recipeName, qty);
             } else {
-                alert('Please select quantity');
+                alert('⚠ Please select quantity first');
             }
         });
 
@@ -460,13 +484,9 @@
         
         if (!filters.categories && !filters.priceRanges || 
             (filters.categories.length === 0 && filters.priceRanges.length === 0)) {
-            // Show all if no filters selected
             $('.food-card').show();
             return;
         }
-
-        // TODO: Implement filter logic based on your data structure
-        // For now, just log the filters
     }
 
     // Search recipes
@@ -484,4 +504,39 @@
             }
         });
     }
+
+    // Submit order
+    function submitOrderNow(recipeId, recipeName, qty) {
+        if (!confirm(`Order ${qty} x ${recipeName}?`)) {
+            return;
+        }
+
+        const orderData = {
+            table_number: TABLE_NUMBER,
+            items: [
+                { recipe_id: recipeId, qty: qty }
+            ]
+        };
+
+        $.ajax({
+            type: 'POST',
+            url: '/api/create_order',
+            data: JSON.stringify(orderData),
+            contentType: 'application/json; charset=utf-8',
+            dataType: 'json'
+        }).done(function(res) {
+            if (res.message === 'Success') {
+                alert('✓ Order submitted successfully!');
+                cart[recipeId] = 0;
+                saveCartToStorage();
+                $(`.qty-display[data-item-id="${recipeId}"]`).text(0);
+            } else {
+                alert('Error: ' + res.message);
+            }
+        }).fail(function(err) {
+            alert('Failed to submit order');
+            console.error(err);
+        });
+    }
 </script>
+}
