@@ -92,6 +92,11 @@
         font-weight: 800;
     }
 
+    .summary-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+
     .empty-cart {
         text-align: center;
         padding: 2rem 1rem;
@@ -102,8 +107,11 @@
 <div class="cart-wrap">
     <div id="cartRows"></div>
     <div class="cart-summary">
-        <div class="summary-total">Total: <span id="grandTotal">₨0.00</span></div>
-        <button class="btn btn-danger" id="backMenuBtn">Back To Menu</button>
+        <div class="summary-total">Total: <span id="grandTotal">0.00 MMK</span></div>
+        <div class="summary-actions">
+            <button class="btn btn-danger" id="backMenuBtn">Back To Menu</button>
+            <button class="btn btn-success" id="confirmOrderBtn">Confirm</button>
+        </div>
     </div>
 </div>
 
@@ -121,7 +129,7 @@
     }
 
     function currency(v) {
-        return `₨${Number(v || 0).toFixed(2)}`;
+        return `${Number(v || 0).toFixed(2)} MMK`;
     }
 
     function buildRow(item) {
@@ -171,6 +179,12 @@
         renderCart();
     }
 
+    function getOrderItems() {
+        return Object.values(selectedCart)
+            .filter(v => (v.qty || 0) > 0)
+            .map(v => ({ recipe_id: parseInt(v.itemId), qty: parseInt(v.qty) }));
+    }
+
     $(document).ready(function() {
         renderCart();
 
@@ -192,6 +206,38 @@
 
         $('#backMenuBtn').on('click', function() {
             window.location.href = `/table/${TABLE_NUMBER}`;
+        });
+
+        $('#confirmOrderBtn').on('click', function() {
+            const items = getOrderItems();
+            if (items.length === 0) {
+                alert('⚠ Your cart is empty.');
+                return;
+            }
+
+            if (!confirm('Confirm this order?')) return;
+
+            $.ajax({
+                type: 'POST',
+                url: '/api/create_order',
+                data: JSON.stringify({ table_number: TABLE_NUMBER, items: items }),
+                contentType: 'application/json; charset=utf-8',
+                dataType: 'json'
+            }).done(function(res) {
+                if (res.message === 'Success') {
+                    Object.keys(selectedCart).forEach(function(id) {
+                        cart[id] = 0;
+                    });
+                    selectedCart = {};
+                    saveAll();
+                    renderCart();
+                    alert('✓ Order submitted successfully!');
+                } else {
+                    alert('Error: ' + (res.message || 'Failed to submit order'));
+                }
+            }).fail(function() {
+                alert('Failed to submit order');
+            });
         });
     });
 </script>

@@ -353,7 +353,7 @@
                     <div class="food-card-body">
                         <div class="food-card-header">
                             <h3 class="food-card-title">@item.recipe_name</h3>
-                            <span class="food-card-price">₨@item.price</span>
+                            <span class="food-card-price">@($"{item.price:0.00} MMK")</span>
                             <button class="food-card-info-btn" title="More info" onclick="showRecipeInfo('@item.id', '@item.recipe_name', '@(item.description?.Replace("'", "\\'") ?? "")')">
                                 <i class="fas fa-info"></i>
                             </button>
