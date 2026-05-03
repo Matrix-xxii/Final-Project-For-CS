@@ -88,7 +88,11 @@
 
     function deleteCategory(id){
         if(!confirm('Delete?'))return;
-        $.post('/api/delete_category', JSON.stringify({id:id}), function(res){
+        $.ajax({
+            type:'POST', url:'/api/delete_category',
+            data:JSON.stringify({id:id}),
+            contentType:'application/json; charset=utf-8'
+        }).done(function(res){
             if(res.message=='Success') loadCategories(); else alert(res.message);
         });
     }
