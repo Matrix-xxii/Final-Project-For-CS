@@ -401,35 +401,35 @@ namespace FoodOutlet.Controllers
         }
 
         [HttpPost("api/delete_staff")]
-        public Models.Message DeleteStaff([FromBody] dynamic payload)
+        public Models.Message DeleteStaff([FromBody] DeleteRequest payload)
         {
             int id = payload.id;
             return _staff.DeleteStaff(id);
         }
 
         [HttpPost("api/delete_category")]
-        public Models.Message DeleteCategory([FromBody] dynamic payload)
+        public Models.Message DeleteCategory([FromBody] DeleteRequest payload)
         {
             int id = payload.id;
             return _staff.DeleteCategory(id);
         }
 
         [HttpPost("api/delete_recipe")]
-        public Models.Message DeleteRecipe([FromBody] dynamic payload)
+        public Models.Message DeleteRecipe([FromBody] DeleteRequest payload)
         {
             int id = payload.id;
             return _staff.DeleteRecipe(id);
         }
 
         [HttpPost("api/delete_role")]
-        public Models.Message DeleteRole([FromBody] dynamic payload)
+        public Models.Message DeleteRole([FromBody] DeleteRequest payload)
         {
             int id = payload.id;
             return _staff.DeleteRole(id);
         }
 
         [HttpPost("api/delete_inventory")]
-        public Models.Message DeleteInventory([FromBody] dynamic payload)
+        public Models.Message DeleteInventory([FromBody] DeleteRequest payload)
         {
             int id = payload.id;
             return _staff.DeleteInventory(id);

@@ -2056,8 +2056,8 @@ wwwroot\plugins\uplot\uPlot.esm.js
 wwwroot\plugins\uplot\uPlot.iife.js
 wwwroot\plugins\uplot\uPlot.iife.min.js
 wwwroot\plugins\uplot\uPlot.min.css
+wwwroot\tableQR\2742f216_table2.jpg
+wwwroot\tableQR\fd6bffb7_table1.jpg
+wwwroot\uploads\recipes\7fb455a2-fdd5-4c6d-b54e-f720e367c96a.jpg
 wwwroot\uploads\recipes\af1124f4-3692-4408-bd9e-32536b65db47.jpg
 wwwroot\uploads\staff\dd1b39ff-3ebd-40d4-b19f-699fdb2156ac.png
-wwwroot\tableQR\fd6bffb7_table1.jpg
-wwwroot\tableQR\2742f216_table2.jpg
-wwwroot\uploads\recipes\7fb455a2-fdd5-4c6d-b54e-f720e367c96a.jpg
