@@ -1192,6 +1192,110 @@ ORDER BY r.recipe_name, r.id";
 
         #endregion
 
+        #region Order Workflow
+
+        /// <summary>
+        /// Returns orders (with item summaries) whose status matches one of the supplied values.
+        /// Joins table_lists for the table label and order_detail + recipes for items.
+        /// NOTE: order_detail is linked by table_id (not order_id) so this works correctly
+        /// when one active order exists per table at a time — normal restaurant operation.
+        /// </summary>
+        public List<dynamic> GetOrdersWithItems(params string[] statuses)
+        {
+            var list = new List<dynamic>();
+            if (statuses == null || statuses.Length == 0) return list;
+
+            try
+            {
+                using (var conn = _connectionFactory.CreateConnection())
+                {
+                    conn.Open();
+
+                    var paramNames = statuses.Select((_, i) => $"@s{i}").ToArray();
+                    string inClause = string.Join(", ", paramNames);
+
+                    string sql = $@"
+                        SELECT
+                            o.id          AS order_id,
+                            o.status,
+                            o.created_at,
+                            tl.table_name AS table_label,
+                            GROUP_CONCAT(
+                                CONCAT(r.recipe_name, ' x', od.qty)
+                                ORDER BY od.id
+                                SEPARATOR ', '
+                            ) AS items_summary
+                        FROM `Order` o
+                        JOIN  table_lists  tl ON tl.id       = o.table_id
+                        LEFT JOIN order_detail od ON od.table_id = o.table_id
+                        LEFT JOIN recipes       r  ON r.id       = od.recipe_id
+                        WHERE o.status IN ({inClause})
+                        GROUP BY o.id, o.status, o.created_at, tl.table_name
+                        ORDER BY o.created_at ASC";
+
+                    using (var cmd = new MySqlCommand(sql, conn))
+                    {
+                        for (int i = 0; i < statuses.Length; i++)
+                            cmd.Parameters.AddWithValue(paramNames[i], statuses[i]);
+
+                        using (var rdr = cmd.ExecuteReader())
+                        {
+                            while (rdr.Read())
+                            {
+                                list.Add(new
+                                {
+                                    order_id      = Convert.ToInt32(rdr["order_id"]),
+                                    status        = rdr["status"]?.ToString() ?? "",
+                                    created_at    = rdr["created_at"] == DBNull.Value
+                                                        ? DateTime.MinValue
+                                                        : Convert.ToDateTime(rdr["created_at"]),
+                                    table_label   = rdr["table_label"]?.ToString() ?? "?",
+                                    items_summary = rdr["items_summary"]?.ToString() ?? "—",
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("GetOrdersWithItems error: " + ex.Message);
+            }
+
+            return list;
+        }
+
+        /// <summary>
+        /// Moves an order to a new status. Returns "Success" or an error string.
+        /// </summary>
+        public Models.Message UpdateOrderStatus(int orderId, string newStatus)
+        {
+            var msg = new Models.Message();
+            try
+            {
+                using (var conn = _connectionFactory.CreateConnection())
+                {
+                    conn.Open();
+                    using (var cmd = new MySqlCommand(
+                        "UPDATE `Order` SET status = @s, updated_at = NOW() WHERE id = @id", conn))
+                    {
+                        cmd.Parameters.AddWithValue("@s",   newStatus);
+                        cmd.Parameters.AddWithValue("@id",  orderId);
+                        int rows = cmd.ExecuteNonQuery();
+                        msg.message = rows > 0 ? "Success" : "Error: Order not found";
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                msg.message = "Error: " + ex.Message;
+                Console.WriteLine("UpdateOrderStatus error: " + ex.Message);
+            }
+            return msg;
+        }
+
+        #endregion
+
         #region Staff Self-Service
 
         public Models.Staff? GetMyStatus(int staffId)
