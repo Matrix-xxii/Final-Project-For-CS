@@ -1048,44 +1048,135 @@ ORDER BY r.recipe_name, r.id";
                 using (var conn = _connectionFactory.CreateConnection())
                 {
                     conn.Open();
-
-                    int tableId = ResolveTableListIdForOrder(tableNumber, conn);
-                    if (tableId == 0)
+                    using (var tx = conn.BeginTransaction())
                     {
-                        msg.message = "Invalid table number";
-                        return msg;
-                    }
-                    var statusId = ResolveInitialStatusId(conn);
+                        int tableId = ResolveTableListIdForOrder(tableNumber, conn);
+                        if (tableId == 0)
+                        {
+                            msg.message = "Invalid table number";
+                            tx.Rollback();
+                            return msg;
+                        }
+                        var statusId = ResolveInitialStatusId(conn);
 
-                    // Create order record
-                    using (var cmd = new MySqlCommand("INSERT INTO `Order` (table_id, status) VALUES (@tid, 'Pending')", conn))
-                    {
-                        cmd.Parameters.AddWithValue("@tid", tableId);
-                        cmd.ExecuteNonQuery();
-                    }
+                        // Merge duplicated recipe lines in one order request to validate/deduct correctly.
+                        var requiredByRecipe = new Dictionary<int, int>();
+                        foreach (var item in items)
+                        {
+                            if (item == null || item.recipe_id <= 0 || item.qty <= 0)
+                            {
+                                msg.message = "Invalid order item";
+                                tx.Rollback();
+                                return msg;
+                            }
 
-                    // Get the last inserted order ID (optional, if you need it)
-                    int orderId = 0;
-                    using (var cmd = new MySqlCommand("SELECT LAST_INSERT_ID()", conn))
-                    {
-                        orderId = Convert.ToInt32(cmd.ExecuteScalar());
-                    }
+                            if (!requiredByRecipe.ContainsKey(item.recipe_id))
+                                requiredByRecipe[item.recipe_id] = 0;
+                            requiredByRecipe[item.recipe_id] += item.qty;
+                        }
 
-                    // Insert each item as order detail
-                    foreach (var item in items)
-                    {
-                        using (var cmd = new MySqlCommand("INSERT INTO order_detail (table_id, recipe_id, qty, status_id) VALUES (@tid, @rid, @qty, @sid)", conn))
+                        // Validate stock with row locks and stage deductions.
+                        var deductions = new Dictionary<int, List<(int inventoryId, int deductQty)>>();
+                        foreach (var req in requiredByRecipe)
+                        {
+                            int recipeId = req.Key;
+                            int neededQty = req.Value;
+
+                            var rows = new List<(int inventoryId, int stockQty)>();
+                            using (var cmd = new MySqlCommand("SELECT id, stock_qty FROM inventories WHERE recipe_id = @rid FOR UPDATE", conn, tx))
+                            {
+                                cmd.Parameters.AddWithValue("@rid", recipeId);
+                                using (var rdr = cmd.ExecuteReader())
+                                {
+                                    while (rdr.Read())
+                                    {
+                                        rows.Add((
+                                            Convert.ToInt32(rdr["id"]),
+                                            rdr["stock_qty"] == DBNull.Value ? 0 : Convert.ToInt32(rdr["stock_qty"])
+                                        ));
+                                    }
+                                }
+                            }
+
+                            int totalStock = rows.Sum(r => r.stockQty);
+                            if (totalStock < neededQty)
+                            {
+                                string recipeName = recipeId.ToString();
+                                try
+                                {
+                                    using (var nameCmd = new MySqlCommand("SELECT recipe_name FROM recipes WHERE id = @rid LIMIT 1", conn, tx))
+                                    {
+                                        nameCmd.Parameters.AddWithValue("@rid", recipeId);
+                                        var n = nameCmd.ExecuteScalar();
+                                        if (n != null) recipeName = n.ToString()!;
+                                    }
+                                }
+                                catch { }
+                                msg.message = $"Not enough stock for \"{recipeName}\". Available: {totalStock}, Requested: {neededQty}";
+                                tx.Rollback();
+                                return msg;
+                            }
+
+                            int remaining = neededQty;
+                            var plan = new List<(int inventoryId, int deductQty)>();
+                            foreach (var row in rows)
+                            {
+                                if (remaining <= 0) break;
+                                if (row.stockQty <= 0) continue;
+                                int take = Math.Min(row.stockQty, remaining);
+                                plan.Add((row.inventoryId, take));
+                                remaining -= take;
+                            }
+                            deductions[recipeId] = plan;
+                        }
+
+                        // Create order record after stock validation passes.
+                        using (var cmd = new MySqlCommand("INSERT INTO `Order` (table_id, status) VALUES (@tid, 'Pending')", conn, tx))
                         {
                             cmd.Parameters.AddWithValue("@tid", tableId);
-                            cmd.Parameters.AddWithValue("@rid", item.recipe_id);
-                            cmd.Parameters.AddWithValue("@qty", item.qty);
-                            cmd.Parameters.AddWithValue("@sid", statusId);
                             cmd.ExecuteNonQuery();
                         }
-                    }
-                }
 
-                msg.message = "Success";
+                        // Keep for future relation/reporting if needed.
+                        int orderId = 0;
+                        using (var cmd = new MySqlCommand("SELECT LAST_INSERT_ID()", conn, tx))
+                        {
+                            orderId = Convert.ToInt32(cmd.ExecuteScalar());
+                        }
+
+                        // Insert each line item.
+                        foreach (var item in items)
+                        {
+                            using (var cmd = new MySqlCommand("INSERT INTO order_detail (table_id, recipe_id, qty, status_id) VALUES (@tid, @rid, @qty, @sid)", conn, tx))
+                            {
+                                cmd.Parameters.AddWithValue("@tid", tableId);
+                                cmd.Parameters.AddWithValue("@rid", item.recipe_id);
+                                cmd.Parameters.AddWithValue("@qty", item.qty);
+                                cmd.Parameters.AddWithValue("@sid", statusId);
+                                cmd.ExecuteNonQuery();
+                            }
+                        }
+
+                        // Apply stock deductions.
+                        foreach (var recipePlan in deductions)
+                        {
+                            foreach (var step in recipePlan.Value)
+                            {
+                                using (var cmd = new MySqlCommand("UPDATE inventories SET stock_qty = stock_qty - @dq, updated_at = NOW() WHERE id = @id", conn, tx))
+                                {
+                                    cmd.Parameters.AddWithValue("@dq", step.deductQty);
+                                    cmd.Parameters.AddWithValue("@id", step.inventoryId);
+                                    cmd.ExecuteNonQuery();
+                                }
+                            }
+                        }
+
+                        tx.Commit();
+                        msg.message = "Success";
+                        _ = orderId;
+                        return msg;
+                    } // transaction scope
+                }
             }
             catch (Exception ex)
             {

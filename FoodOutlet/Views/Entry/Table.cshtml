@@ -155,8 +155,27 @@
         border-radius: 12px;
         font-size: 0.75rem;
         display: inline-block;
-        margin-bottom: 1rem;
+        margin-bottom: 0.4rem;
         width: fit-content;
+    }
+
+    .food-card-stock {
+        display: inline-block;
+        font-size: 0.75rem;
+        padding: 0.25rem 0.6rem;
+        border-radius: 12px;
+        margin-bottom: 0.75rem;
+        font-weight: 600;
+    }
+
+    .food-card-stock.in-stock {
+        background: #e6f9ee;
+        color: #1e7e34;
+    }
+
+    .food-card-stock.out-of-stock {
+        background: #fde8e8;
+        color: #c0100b;
     }
 
     .food-card-quantity {
@@ -346,7 +365,7 @@
         {
             @foreach (var item in Model)
             {
-                <div class="food-card" data-recipe-id="@item.id">
+                <div class="food-card" data-recipe-id="@item.id" data-stock="@item.stock_qty">
                     <div class="food-card-image">
                         <img src="@item.recipe_img" alt="@item.recipe_name" onerror="this.src='/img/placeholder.png'">
                     </div>
@@ -360,20 +379,23 @@
                         </div>
 
                         <span class="food-card-category">@item.category_name</span>
+                        <span class="food-card-stock @(item.stock_qty <= 0 ? "out-of-stock" : "in-stock")">
+                            @(item.stock_qty <= 0 ? "Out of stock" : $"Stock: {item.stock_qty}")
+                        </span>
 
                         <div class="food-card-quantity">
-                            <button class="qty-btn qty-decrease" data-item-id="@item.id">
+                            <button class="qty-btn qty-decrease" data-item-id="@item.id" @(item.stock_qty <= 0 ? "disabled" : "")>
                                 <i class="fas fa-minus"></i>
                             </button>
                             <span class="qty-display" data-item-id="@item.id">0</span>
-                            <button class="qty-btn qty-increase" data-item-id="@item.id">
+                            <button class="qty-btn qty-increase" data-item-id="@item.id" data-stock="@item.stock_qty" @(item.stock_qty <= 0 ? "disabled" : "")>
                                 <i class="fas fa-plus"></i>
                             </button>
                         </div>
 
                         <div class="food-card-actions">
-                            <button class="btn-add-cart" data-item-id="@item.id" data-recipe-name="@item.recipe_name" data-recipe-price="@item.price" data-recipe-img="@item.recipe_img">Add To Cart</button>
-                            <button class="btn-order-now" data-item-id="@item.id" data-recipe-name="@item.recipe_name">Order Now</button>
+                            <button class="btn-add-cart" data-item-id="@item.id" data-recipe-name="@item.recipe_name" data-recipe-price="@item.price" data-recipe-img="@item.recipe_img" @(item.stock_qty <= 0 ? "disabled" : "")>Add To Cart</button>
+                            <button class="btn-order-now" data-item-id="@item.id" data-recipe-name="@item.recipe_name" @(item.stock_qty <= 0 ? "disabled" : "")>Order Now</button>
                         </div>
                     </div>
                 </div>
@@ -436,8 +458,13 @@
         $(document).on('click', '.qty-increase', function(e) {
             e.preventDefault();
             const itemId = $(this).data('item-id');
-            console.log('Increase clicked for item:', itemId);
-            const qty = (cart[itemId] || 0) + 1;
+            const stock = parseInt($(this).data('stock')) || 0;
+            const current = cart[itemId] || 0;
+            if (current >= stock) {
+                alert(`⚠ Maximum available stock is ${stock}`);
+                return;
+            }
+            const qty = current + 1;
             cart[itemId] = qty;
             updateQtyDisplay(itemId);
             saveCartToStorage();

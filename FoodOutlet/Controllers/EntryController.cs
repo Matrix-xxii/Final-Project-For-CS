@@ -254,8 +254,13 @@ namespace FoodOutlet.Controllers
 
             conn.Close();
 
-            // Load recipes
+            // Load recipes and stock
             var recipes = _staff.GetAllRecipes();
+            var inventories = _staff.GetAllInventories();
+            var stockByRecipe = inventories.ToDictionary(
+                i => (int)i.recipe_id,
+                i => (int)i.stock_qty
+            );
 
             // Convert recipe images to base64 if they are file paths
             var converted = new List<dynamic>();
@@ -263,7 +268,6 @@ namespace FoodOutlet.Controllers
             {
                 string img = r.recipe_img ?? "";
 
-                // If image is not already base64, convert it
                 if (!string.IsNullOrEmpty(img) && !img.StartsWith("data:"))
                 {
                     try
@@ -271,7 +275,6 @@ namespace FoodOutlet.Controllers
                         var physical = Path.Combine(_env.WebRootPath ?? "wwwroot", img.TrimStart('/', '\\'));
                         if (System.IO.File.Exists(physical))
                         {
-                            // Fixed: Removed extra opening brace - was { { ... }
                             var bytes = System.IO.File.ReadAllBytes(physical);
                             string mime = "image/png";
                             var ext = Path.GetExtension(physical).ToLowerInvariant();
@@ -293,6 +296,9 @@ namespace FoodOutlet.Controllers
                     }
                 }
 
+                int recipeId = (int)r.id;
+                int stock = stockByRecipe.ContainsKey(recipeId) ? stockByRecipe[recipeId] : 0;
+
                 converted.Add(new
                 {
                     id = r.id,
@@ -301,7 +307,8 @@ namespace FoodOutlet.Controllers
                     recipe_img = img,
                     description = r.description,
                     price = r.price,
-                    category_name = r.category_name
+                    category_name = r.category_name,
+                    stock_qty = stock
                 });
             }
 
