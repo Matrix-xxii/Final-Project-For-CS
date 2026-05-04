@@ -417,7 +417,7 @@
     const TABLE_NUMBER = @tableNumber;
     const CART_KEY = `cart_table_${TABLE_NUMBER}`;
     const CART_SELECTION_KEY = `cart_selected_table_${TABLE_NUMBER}`;
-    let cart = JSON.parse(localStorage.getItem(CART_KEY)) || {};
+    let cart = {};   // always start fresh — qty display always begins at 0
     let selectedCart = JSON.parse(localStorage.getItem(CART_SELECTION_KEY)) || {};
 
     // Helper functions - must be outside $(document).ready)
@@ -451,8 +451,7 @@
     }
 
     $(document).ready(function() {
-        // Load quantities from localStorage on page load
-        loadCartFromStorage();
+        // qty always starts at 0 — no restoration from storage
 
         // Quantity controls - INCREASE
         $(document).on('click', '.qty-increase', function(e) {
@@ -499,6 +498,9 @@
                     qty: qty
                 };
                 saveSelectedCart();
+                // reset qty display back to 0 after adding to cart
+                cart[itemId] = 0;
+                updateQtyDisplay(itemId);
                 alert(`✓ Added ${qty} x ${recipeName} to cart`);
             } else {
                 alert('⚠ Please select quantity first');

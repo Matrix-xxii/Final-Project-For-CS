@@ -1037,6 +1037,41 @@ ORDER BY r.recipe_name, r.id";
         /// <summary>
         /// Create order with items
         /// </summary>
+        // Tracks whether the order_id column migration has run this app-lifetime.
+        private static bool _orderDetailMigrated = false;
+        private static readonly object _migrateLock = new();
+
+        /// <summary>
+        /// Adds order_id column to order_detail if it doesn't exist yet.
+        /// Must be called OUTSIDE any active transaction (ALTER TABLE causes implicit commit).
+        /// </summary>
+        private void EnsureOrderDetailOrderId(MySqlConnection conn)
+        {
+            if (_orderDetailMigrated) return;
+            lock (_migrateLock)
+            {
+                if (_orderDetailMigrated) return;
+                try
+                {
+                    using var check = new MySqlCommand(
+                        "SELECT COUNT(*) FROM information_schema.columns " +
+                        "WHERE table_schema = DATABASE() AND table_name = 'order_detail' AND column_name = 'order_id'", conn);
+                    if (Convert.ToInt32(check.ExecuteScalar()) == 0)
+                    {
+                        using var alter = new MySqlCommand(
+                            "ALTER TABLE order_detail ADD COLUMN order_id INT NULL DEFAULT NULL", conn);
+                        alter.ExecuteNonQuery();
+                        Console.WriteLine("order_detail.order_id column added.");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("EnsureOrderDetailOrderId error: " + ex.Message);
+                }
+                _orderDetailMigrated = true;
+            }
+        }
+
         public Message CreateOrder(int tableNumber, List<Models.OrderItem> items)
         {
             var msg = new Message();
@@ -1051,6 +1086,7 @@ ORDER BY r.recipe_name, r.id";
                 using (var conn = _connectionFactory.CreateConnection())
                 {
                     conn.Open();
+                    EnsureOrderDetailOrderId(conn); // must run before transaction
                     using (var tx = conn.BeginTransaction())
                     {
                         int tableId = ResolveTableListIdForOrder(tableNumber, conn);
@@ -1147,15 +1183,18 @@ ORDER BY r.recipe_name, r.id";
                             orderId = Convert.ToInt32(cmd.ExecuteScalar());
                         }
 
-                        // Insert each line item.
+                        // Insert each line item — stamp order_id so items are tied to this order only.
                         foreach (var item in items)
                         {
-                            using (var cmd = new MySqlCommand("INSERT INTO order_detail (table_id, recipe_id, qty, status_id) VALUES (@tid, @rid, @qty, @sid)", conn, tx))
+                            using (var cmd = new MySqlCommand(
+                                "INSERT INTO order_detail (table_id, recipe_id, qty, status_id, order_id) " +
+                                "VALUES (@tid, @rid, @qty, @sid, @oid)", conn, tx))
                             {
                                 cmd.Parameters.AddWithValue("@tid", tableId);
                                 cmd.Parameters.AddWithValue("@rid", item.recipe_id);
                                 cmd.Parameters.AddWithValue("@qty", item.qty);
                                 cmd.Parameters.AddWithValue("@sid", statusId);
+                                cmd.Parameters.AddWithValue("@oid", orderId);
                                 cmd.ExecuteNonQuery();
                             }
                         }
@@ -1176,7 +1215,6 @@ ORDER BY r.recipe_name, r.id";
 
                         tx.Commit();
                         msg.message = "Success";
-                        _ = orderId;
                         return msg;
                     } // transaction scope
                 }
@@ -1210,6 +1248,7 @@ ORDER BY r.recipe_name, r.id";
                 using (var conn = _connectionFactory.CreateConnection())
                 {
                     conn.Open();
+                    EnsureOrderDetailOrderId(conn); // ensure column exists before querying
 
                     var paramNames = statuses.Select((_, i) => $"@s{i}").ToArray();
                     string inClause = string.Join(", ", paramNames);
@@ -1226,8 +1265,8 @@ ORDER BY r.recipe_name, r.id";
                                 SEPARATOR ', '
                             ) AS items_summary
                         FROM `Order` o
-                        JOIN  table_lists  tl ON tl.id       = o.table_id
-                        LEFT JOIN order_detail od ON od.table_id = o.table_id
+                        JOIN  table_lists  tl ON tl.id    = o.table_id
+                        LEFT JOIN order_detail od ON od.order_id = o.id
                         LEFT JOIN recipes       r  ON r.id       = od.recipe_id
                         WHERE o.status IN ({inClause})
                         GROUP BY o.id, o.status, o.created_at, tl.table_name
@@ -1242,6 +1281,7 @@ ORDER BY r.recipe_name, r.id";
                         {
                             while (rdr.Read())
                             {
+                                var summary = rdr["items_summary"]?.ToString() ?? "—";
                                 list.Add(new
                                 {
                                     order_id      = Convert.ToInt32(rdr["order_id"]),
@@ -1250,7 +1290,7 @@ ORDER BY r.recipe_name, r.id";
                                                         ? DateTime.MinValue
                                                         : Convert.ToDateTime(rdr["created_at"]),
                                     table_label   = rdr["table_label"]?.ToString() ?? "?",
-                                    items_summary = rdr["items_summary"]?.ToString() ?? "—",
+                                    items_summary = summary,
                                 });
                             }
                         }
