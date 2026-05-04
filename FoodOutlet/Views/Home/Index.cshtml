@@ -3,36 +3,6 @@
     var isAdmin = User.FindFirst("RoleName")?.Value == "Admin";
 }
 
-<style>
-    .resign-letter-card {
-        border-left: 4px solid #dc3545;
-        transition: box-shadow 0.2s;
-    }
-    .resign-letter-card:hover {
-        box-shadow: 0 4px 16px rgba(220,53,69,0.15);
-    }
-    .resign-avatar {
-        width: 52px;
-        height: 52px;
-        border-radius: 50%;
-        object-fit: cover;
-        border: 2px solid #dc3545;
-        flex-shrink: 0;
-    }
-    .resign-reason-text {
-        font-style: italic;
-        color: #555;
-        background: #fff8f8;
-        border-radius: 6px;
-        padding: 8px 12px;
-        margin-top: 8px;
-        font-size: 0.88rem;
-        border: 1px solid #f5c6cb;
-    }
-    #resignLettersEmpty {
-        display: none;
-    }
-</style>
 
 <div class="content-header">
     <div class="container-fluid"></div>
@@ -102,32 +72,6 @@
 
             </div>
 
-            <!-- Resignation Letters Inbox -->
-            <div class="row mt-2">
-                <div class="col-12">
-                    <div class="card card-outline card-danger">
-                        <div class="card-header d-flex align-items-center">
-                            <h3 class="card-title font-weight-bold">
-                                <i class="fas fa-envelope-open-text mr-2 text-danger"></i>
-                                Resignation Letters
-                                <span class="badge badge-danger ml-2" id="lettersBadge" style="display:none;"></span>
-                            </h3>
-                            <div class="card-tools ml-auto">
-                                <a href="@Url.Action("StaffResignRecords", "Entry")" class="btn btn-sm btn-outline-danger">
-                                    View All Records <i class="fas fa-external-link-alt ml-1"></i>
-                                </a>
-                            </div>
-                        </div>
-                        <div class="card-body">
-                            <div id="resignLettersEmpty" class="text-center text-muted py-4">
-                                <i class="fas fa-inbox fa-2x mb-2 d-block"></i>
-                                No resignation letters yet.
-                            </div>
-                            <div id="resignLettersList" class="row"></div>
-                        </div>
-                    </div>
-                </div>
-            </div>
         }
     </div>
 </section>
@@ -142,7 +86,6 @@
         if (dashLoaded) return;
         dashLoaded = true;
         loadCounts();
-        loadResignLetters();
     });
 
     function loadCounts() {
@@ -156,68 +99,6 @@
             $('#resignCount').text(res.resign_count || 0);
         }).fail(function () {
             console.error('Failed to load counts');
-        });
-    }
-
-    function loadResignLetters() {
-        $.ajax({
-            type: 'GET', url: '/api/get_resigned_staff', cache: false, timeout: 10000
-        }).done(function (res) {
-            var list = res.records || [];
-            var container = $('#resignLettersList');
-            container.empty();
-
-            if (list.length === 0) {
-                $('#resignLettersEmpty').show();
-                $('#lettersBadge').hide();
-                return;
-            }
-
-            $('#resignLettersEmpty').hide();
-            $('#lettersBadge').text(list.length).show();
-
-            list.forEach(function (item) {
-                var photo = item.photo
-                    ? (item.photo.startsWith('/') ? item.photo : '/uploads/staff/' + item.photo)
-                    : '/img/user2-160x160.jpg';
-
-                var dateStr = item.resign
-                    ? new Date(item.resign).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' })
-                    : '—';
-
-                var card = `
-                    <div class="col-md-6 col-lg-4 mb-3">
-                        <div class="card resign-letter-card mb-0 h-100">
-                            <div class="card-body">
-                                <div class="d-flex align-items-center mb-2">
-                                    <img src="${photo}" alt="${item.name}"
-                                         class="resign-avatar mr-3"
-                                         onerror="this.src='/img/user2-160x160.jpg'" />
-                                    <div>
-                                        <div class="font-weight-bold" style="font-size:0.95rem;">${item.name}</div>
-                                        <span class="badge badge-secondary" style="font-size:0.72rem;">${item.role_name || ''}</span>
-                                    </div>
-                                    <div class="ml-auto text-muted" style="font-size:0.75rem; white-space:nowrap;">
-                                        <i class="fas fa-calendar-alt mr-1"></i>${dateStr}
-                                    </div>
-                                </div>
-                                <div class="resign-reason-text">
-                                    <i class="fas fa-quote-left mr-1 text-danger" style="font-size:0.75rem;"></i>
-                                    ${item.reason || '<em class="text-muted">No reason provided.</em>'}
-                                </div>
-                                <div class="mt-2" style="font-size:0.78rem; color:#888;">
-                                    <i class="fas fa-envelope mr-1"></i>${item.email}
-                                    &nbsp;|&nbsp;
-                                    <i class="fas fa-phone mr-1"></i>${item.phone_no || '—'}
-                                </div>
-                            </div>
-                        </div>
-                    </div>`;
-
-                container.append(card);
-            });
-        }).fail(function () {
-            console.error('Failed to load resignation letters');
         });
     }
 </script>

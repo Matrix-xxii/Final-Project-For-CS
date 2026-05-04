@@ -578,5 +578,38 @@ namespace FoodOutlet.Controllers
 
             return msg;
         }
+
+        /// <summary>
+        /// Returns all active orders for a table (status: Pending/Approved/Ready/Served).
+        /// Called by the customer-facing "Order History" panel via AJAX.
+        /// </summary>
+        [HttpGet("/api/table/order_history")]
+        public IActionResult TableOrderHistory(int tableNumber)
+        {
+            // #region agent log
+            var _logPath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "debug-cff0a8.log");
+            void WriteLog(string hyp, string msg, object data) {
+                var entry = System.Text.Json.JsonSerializer.Serialize(new { sessionId="cff0a8", hypothesisId=hyp, location="EntryController.cs:TableOrderHistory", message=msg, data, timestamp=DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() });
+                System.IO.File.AppendAllText(_logPath, entry + "\n");
+            }
+            WriteLog("H-F H-G", "API endpoint hit", new { tableNumber });
+            // #endregion
+
+            var history = _staff.GetTableOrderHistory(tableNumber);
+
+            // #region agent log
+            WriteLog("H-G", "GetTableOrderHistory returned", new { count = history.Count, tableNumber });
+            // #endregion
+
+            var result = history.Select(o => new
+            {
+                order_id      = (int)o.order_id,
+                status        = (string)o.status,
+                created_at    = ((DateTime)o.created_at).ToString("dd MMM HH:mm"),
+                order_total   = (decimal)o.order_total,
+                items_summary = (string)o.items_summary,
+            }).ToList();
+            return Json(result);
+        }
     }
 }

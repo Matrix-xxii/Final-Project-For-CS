@@ -1306,6 +1306,264 @@ ORDER BY r.recipe_name, r.id";
         }
 
         /// <summary>
+        /// Returns all active orders for a given table (Pending / Approved / Ready / Served).
+        /// Excludes Cleaning, Done, and Cancelled so the list resets once the cashier sends
+        /// the table to clean.
+        /// </summary>
+        public List<dynamic> GetTableOrderHistory(int tableNumber)
+        {
+            // #region agent log
+            var _logPath2 = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "debug-cff0a8.log");
+            void WriteLog2(string hyp, string msg, object data) {
+                var entry = System.Text.Json.JsonSerializer.Serialize(new { sessionId="cff0a8", hypothesisId=hyp, location="Staff.cs:GetTableOrderHistory", message=msg, data, timestamp=DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() });
+                System.IO.File.AppendAllText(_logPath2, entry + "\n");
+            }
+            // #endregion
+
+            var list = new List<dynamic>();
+            try
+            {
+                using (var conn = _connectionFactory.CreateConnection())
+                {
+                    conn.Open();
+                    EnsureOrderDetailOrderId(conn);
+
+                    // #region agent log — check what table_name values exist for this tableNumber
+                    string? actualTableName = null;
+                    bool tableNumColExists = false;
+                    try {
+                        using var chk = new MySqlCommand("SELECT table_name FROM table_lists WHERE table_number = @tn LIMIT 1", conn);
+                        chk.Parameters.AddWithValue("@tn", tableNumber);
+                        actualTableName = chk.ExecuteScalar()?.ToString();
+                        tableNumColExists = true;
+                    } catch { tableNumColExists = false; }
+                    // fallback: try by name
+                    string? nameMatch = null;
+                    try {
+                        using var chk2 = new MySqlCommand("SELECT table_name FROM table_lists WHERE table_name IN (@a,@b) LIMIT 1", conn);
+                        chk2.Parameters.AddWithValue("@a", tableNumber.ToString());
+                        chk2.Parameters.AddWithValue("@b", $"Table {tableNumber}");
+                        nameMatch = chk2.ExecuteScalar()?.ToString();
+                    } catch { }
+                    WriteLog2("H-G", "table_lists lookup", new { tableNumber, tableNumColExists, actualTableName, nameMatch });
+                    // #endregion
+
+                    const string sql = @"
+                        SELECT
+                            o.id                               AS order_id,
+                            o.status,
+                            o.created_at,
+                            COALESCE(SUM(r.price * od.qty), 0) AS order_total,
+                            GROUP_CONCAT(
+                                CONCAT(r.recipe_name, ' x', od.qty)
+                                ORDER BY od.id
+                                SEPARATOR ', '
+                            )                                  AS items_summary
+                        FROM `Order` o
+                        JOIN  table_lists  tl ON tl.id       = o.table_id
+                        LEFT JOIN order_detail od ON od.order_id = o.id
+                        LEFT JOIN recipes       r  ON r.id       = od.recipe_id
+                        WHERE tl.table_name IN (@tnStr, @tnFmt)
+                          AND o.status NOT IN ('Cleaning', 'Done', 'Cancelled')
+                        GROUP BY o.id, o.status, o.created_at
+                        ORDER BY o.created_at ASC";
+
+                    using (var cmd = new MySqlCommand(sql, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@tnStr", tableNumber.ToString());
+                        cmd.Parameters.AddWithValue("@tnFmt", $"Table {tableNumber}");
+
+                        using (var rdr = cmd.ExecuteReader())
+                        {
+                            while (rdr.Read())
+                            {
+                                list.Add(new
+                                {
+                                    order_id      = Convert.ToInt32(rdr["order_id"]),
+                                    status        = rdr["status"]?.ToString() ?? "",
+                                    created_at    = rdr["created_at"] == DBNull.Value
+                                                        ? DateTime.MinValue
+                                                        : Convert.ToDateTime(rdr["created_at"]),
+                                    order_total   = rdr["order_total"] == DBNull.Value
+                                                        ? 0m
+                                                        : Convert.ToDecimal(rdr["order_total"]),
+                                    items_summary = rdr["items_summary"]?.ToString() ?? "—",
+                                });
+                            }
+                        }
+                    }
+                    // #region agent log
+                    WriteLog2("H-G", "query complete", new { rowsReturned = list.Count });
+                    // #endregion
+                }
+            }
+            catch (Exception ex)
+            {
+                // #region agent log
+                WriteLog2("H-G", "EXCEPTION in GetTableOrderHistory", new { error = ex.Message, type = ex.GetType().Name });
+                // #endregion
+                Console.WriteLine("GetTableOrderHistory error: " + ex.Message);
+            }
+            return list;
+        }
+
+        /// <summary>
+        /// Groups all currently-Cleaning orders by table (same structure as GetServedByTable).
+        /// The cleaner marks the whole table Done in one click.
+        /// </summary>
+        public List<dynamic> GetCleaningByTable()
+        {
+            var list = new List<dynamic>();
+            try
+            {
+                using (var conn = _connectionFactory.CreateConnection())
+                {
+                    conn.Open();
+                    EnsureOrderDetailOrderId(conn);
+
+                    const string sql = @"
+                        SELECT
+                            tl.table_name                                                              AS table_label,
+                            GROUP_CONCAT(DISTINCT CAST(o.id AS CHAR) ORDER BY o.id SEPARATOR ',')      AS order_ids,
+                            MIN(o.created_at)                                                          AS first_ordered_at,
+                            GROUP_CONCAT(
+                                CONCAT(r.recipe_name, ' x', od.qty)
+                                ORDER BY od.id
+                                SEPARATOR '|'
+                            )                                                                          AS items_raw
+                        FROM `Order` o
+                        JOIN  table_lists  tl ON tl.id       = o.table_id
+                        LEFT JOIN order_detail od ON od.order_id = o.id
+                        LEFT JOIN recipes       r  ON r.id       = od.recipe_id
+                        WHERE o.status = 'Cleaning'
+                        GROUP BY tl.table_name, o.table_id
+                        ORDER BY MIN(o.created_at) ASC";
+
+                    using (var cmd = new MySqlCommand(sql, conn))
+                    using (var rdr = cmd.ExecuteReader())
+                    {
+                        while (rdr.Read())
+                        {
+                            list.Add(new
+                            {
+                                table_label      = rdr["table_label"]?.ToString() ?? "?",
+                                order_ids        = rdr["order_ids"]?.ToString() ?? "",
+                                first_ordered_at = rdr["first_ordered_at"] == DBNull.Value
+                                                       ? DateTime.MinValue
+                                                       : Convert.ToDateTime(rdr["first_ordered_at"]),
+                                items_raw        = rdr["items_raw"]?.ToString() ?? "—",
+                            });
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("GetCleaningByTable error: " + ex.Message);
+            }
+            return list;
+        }
+
+        /// <summary>
+        /// Groups all currently-Served orders by table. Each entry contains the table label,
+        /// a comma-separated list of order IDs, the earliest order time, an aggregated items
+        /// summary, and the total cost (sum of recipe price × qty across all orders for that
+        /// table).
+        /// </summary>
+        public List<dynamic> GetServedByTable()
+        {
+            var list = new List<dynamic>();
+            try
+            {
+                using (var conn = _connectionFactory.CreateConnection())
+                {
+                    conn.Open();
+                    EnsureOrderDetailOrderId(conn);
+
+                    const string sql = @"
+                        SELECT
+                            tl.table_name                                                              AS table_label,
+                            GROUP_CONCAT(DISTINCT CAST(o.id AS CHAR) ORDER BY o.id SEPARATOR ',')      AS order_ids,
+                            MIN(o.created_at)                                                          AS first_ordered_at,
+                            COALESCE(SUM(r.price * od.qty), 0)                                         AS total_cost,
+                            GROUP_CONCAT(
+                                CONCAT(r.recipe_name, ' x', od.qty)
+                                ORDER BY od.id
+                                SEPARATOR '|'
+                            )                                                                          AS items_raw
+                        FROM `Order` o
+                        JOIN  table_lists  tl ON tl.id       = o.table_id
+                        LEFT JOIN order_detail od ON od.order_id = o.id
+                        LEFT JOIN recipes       r  ON r.id       = od.recipe_id
+                        WHERE o.status = 'Served'
+                        GROUP BY tl.table_name, o.table_id
+                        ORDER BY MIN(o.created_at) ASC";
+
+                    using (var cmd = new MySqlCommand(sql, conn))
+                    using (var rdr = cmd.ExecuteReader())
+                    {
+                        while (rdr.Read())
+                        {
+                            list.Add(new
+                            {
+                                table_label      = rdr["table_label"]?.ToString() ?? "?",
+                                order_ids        = rdr["order_ids"]?.ToString() ?? "",
+                                first_ordered_at = rdr["first_ordered_at"] == DBNull.Value
+                                                       ? DateTime.MinValue
+                                                       : Convert.ToDateTime(rdr["first_ordered_at"]),
+                                total_cost       = rdr["total_cost"] == DBNull.Value
+                                                       ? 0m
+                                                       : Convert.ToDecimal(rdr["total_cost"]),
+                                items_raw        = rdr["items_raw"]?.ToString() ?? "—",
+                            });
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("GetServedByTable error: " + ex.Message);
+            }
+            return list;
+        }
+
+        /// <summary>
+        /// Moves a set of orders (by their IDs) to a new status in one statement.
+        /// </summary>
+        public Models.Message UpdateMultipleOrderStatus(List<int> orderIds, string newStatus)
+        {
+            var msg = new Models.Message();
+            if (orderIds == null || orderIds.Count == 0)
+            {
+                msg.message = "Error: No order IDs provided.";
+                return msg;
+            }
+            try
+            {
+                using (var conn = _connectionFactory.CreateConnection())
+                {
+                    conn.Open();
+                    var paramNames = orderIds.Select((_, i) => $"@id{i}").ToArray();
+                    string sql = $"UPDATE `Order` SET status = @s, updated_at = NOW() WHERE id IN ({string.Join(",", paramNames)})";
+                    using (var cmd = new MySqlCommand(sql, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@s", newStatus);
+                        for (int i = 0; i < orderIds.Count; i++)
+                            cmd.Parameters.AddWithValue(paramNames[i], orderIds[i]);
+                        int rows = cmd.ExecuteNonQuery();
+                        msg.message = rows > 0 ? "Success" : "Error: No orders were updated.";
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                msg.message = "Error: " + ex.Message;
+                Console.WriteLine("UpdateMultipleOrderStatus error: " + ex.Message);
+            }
+            return msg;
+        }
+
+        /// <summary>
         /// Moves an order to a new status. Returns "Success" or an error string.
         /// </summary>
         public Models.Message UpdateOrderStatus(int orderId, string newStatus)

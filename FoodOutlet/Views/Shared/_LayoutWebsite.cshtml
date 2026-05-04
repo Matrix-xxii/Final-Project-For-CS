@@ -461,7 +461,7 @@
                     <i class="fas fa-bars"></i>
                 </button>
                 <div class="dropdown-menu">
-                    <a href="#" class="dropdown-item">
+                    <a href="#" class="dropdown-item" id="orderHistoryLink">
                         <i class="fas fa-history"></i> Order History
                     </a>
                     <a href="#" class="dropdown-item" id="myCartLink">
@@ -470,6 +470,32 @@
                 </div>
             </div>
         </nav>
+
+        <!-- ORDER HISTORY PANEL -->
+        <div class="filter-overlay" id="historyOverlay"></div>
+        <div class="filter-panel" id="historyPanel" style="width:340px; max-width:95vw;">
+            <div class="filter-panel-header">
+                <h5><i class="fas fa-history mr-2"></i>Order History</h5>
+                <button class="filter-close-btn" id="historyCloseBtn">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div id="historyBody" style="padding:1rem; overflow-y:auto; flex:1;">
+                <div id="historyLoading" class="text-center text-muted py-4">
+                    <i class="fas fa-spinner fa-spin fa-2x mb-2 d-block"></i>Loading…
+                </div>
+                <div id="historyContent" style="display:none;"></div>
+                <div id="historyEmpty"   style="display:none; text-align:center; color:#aaa; padding:2rem 0;">
+                    <i class="fas fa-receipt fa-2x mb-2 d-block"></i>No orders placed yet.
+                </div>
+            </div>
+            <div id="historyFooter" style="border-top:1px solid #eee; padding:.75rem 1rem; display:none;">
+                <div class="d-flex justify-content-between align-items-center">
+                    <span style="font-weight:700; font-size:.9rem; color:#555;">Grand Total</span>
+                    <span id="historyGrandTotal" style="font-weight:800; font-size:1.1rem; color:#27ae60;"></span>
+                </div>
+            </div>
+        </div>
 
         <!-- FILTER PANEL -->
         <div class="filter-overlay" id="filterOverlay"></div>
@@ -590,6 +616,112 @@
                     $(document).trigger('searchSubmitted', [searchTerm]);
                     console.log('Search:', searchTerm);
                 }
+            });
+
+            // ── Order History Panel ──────────────────────────────────────────
+            // #region agent log
+            var _dbgEp = 'http://127.0.0.1:7765/ingest/e5643bba-007a-4618-b444-3d5149c3d1ba';
+            function _dbgLog(hyp, loc, msg, data) {
+                fetch(_dbgEp, {method:'POST', headers:{'Content-Type':'application/json','X-Debug-Session-Id':'cff0a8'},
+                    body: JSON.stringify({sessionId:'cff0a8', hypothesisId:hyp, location:loc, message:msg, data:data, timestamp:Date.now()})}).catch(function(){});
+            }
+            // H-A: verify click handler is bound at DOM ready
+            _dbgLog('H-A', '_LayoutWebsite.cshtml:setup', 'history JS block reached', {orderHistoryLinkExists: !!document.getElementById('orderHistoryLink')});
+            // #endregion
+
+            function getTableNumber() {
+                var m = window.location.pathname.match(/\/table\/(\d+)/i);
+                // #region agent log
+                _dbgLog('H-B', '_LayoutWebsite.cshtml:getTableNumber', 'getTableNumber called', {pathname: window.location.pathname, matched: !!m, tableNumber: m ? parseInt(m[1]) : 0});
+                console.log('[DBG H-F] getTableNumber | path=' + window.location.pathname + ' | matched=' + !!m + ' | tn=' + (m ? parseInt(m[1]) : 0));
+                // #endregion
+                return m ? parseInt(m[1]) : 0;
+            }
+
+            function statusBadge(s) {
+                var map = {
+                    'Pending':  'warning',
+                    'Approved': 'info',
+                    'Ready':    'primary',
+                    'Served':   'success'
+                };
+                var cls = map[s] || 'secondary';
+                return '<span class="badge badge-' + cls + ' ml-1">' + s + '</span>';
+            }
+
+            function openHistoryPanel() {
+                // #region agent log
+                _dbgLog('H-A','_LayoutWebsite.cshtml:openHistoryPanel','openHistoryPanel called',{panelExists:!!document.getElementById('historyPanel'), overlayExists:!!document.getElementById('historyOverlay')});
+                // #endregion
+                $('#historyOverlay').addClass('active');
+                $('#historyPanel').addClass('active');
+                $('#historyLoading').show();
+                $('#historyContent').hide().empty();
+                $('#historyEmpty').hide();
+                $('#historyFooter').hide();
+
+                var tn = getTableNumber();
+                if (!tn) {
+                    $('#historyLoading').hide();
+                    $('#historyEmpty').show();
+                    return;
+                }
+
+                // #region agent log
+                _dbgLog('H-C','_LayoutWebsite.cshtml:ajax','firing AJAX',{url:'/api/table/order_history', tableNumber:tn});
+                // #endregion
+                $.getJSON('/api/table/order_history', { tableNumber: tn }, function(data) {
+                    // #region agent log
+                    _dbgLog('H-C H-E','_LayoutWebsite.cshtml:ajax-success','AJAX success',{count: data ? data.length : 0, firstItem: data && data.length > 0 ? data[0] : null});
+                    // #endregion
+                    $('#historyLoading').hide();
+                    if (!data || data.length === 0) {
+                        $('#historyEmpty').show();
+                        return;
+                    }
+
+                    var grandTotal = 0;
+                    var html = '';
+                    data.forEach(function(o, i) {
+                        grandTotal += o.order_total;
+                        html += '<div style="border:1px solid #eee; border-radius:8px; padding:.65rem .8rem; margin-bottom:.6rem;">';
+                        html += '<div class="d-flex justify-content-between align-items-center mb-1">';
+                        html += '<span style="font-size:.8rem; color:#888;"><i class="fas fa-clock mr-1"></i>' + o.created_at + '</span>';
+                        html += statusBadge(o.status);
+                        html += '</div>';
+                        html += '<div style="font-size:.85rem; color:#444; line-height:1.6;">'
+                              + '<i class="fas fa-utensils mr-1 text-muted" style="font-size:.7rem;"></i>'
+                              + o.items_summary + '</div>';
+                        if (o.order_total > 0) {
+                            html += '<div style="text-align:right; font-size:.82rem; font-weight:600; color:#27ae60; margin-top:.3rem;">'
+                                  + o.order_total.toLocaleString() + ' MMK</div>';
+                        }
+                        html += '</div>';
+                    });
+
+                    $('#historyContent').html(html).show();
+                    $('#historyGrandTotal').text(grandTotal.toLocaleString() + ' MMK');
+                    $('#historyFooter').show();
+                }).fail(function(xhr) {
+                    // #region agent log
+                    _dbgLog('H-C H-D','_LayoutWebsite.cshtml:ajax-fail','AJAX failed',{status:xhr.status, statusText:xhr.statusText, responseText: xhr.responseText ? xhr.responseText.substring(0,200) : null});
+                    // #endregion
+                    $('#historyLoading').hide();
+                    $('#historyContent').html('<div class="text-danger text-center py-3">Failed to load history.</div>').show();
+                });
+            }
+
+            $('#orderHistoryLink').on('click', function(e) {
+                e.preventDefault();
+                // #region agent log
+                _dbgLog('H-A','_LayoutWebsite.cshtml:click','orderHistoryLink clicked',{href:$(this).attr('href')});
+                // #endregion
+                openHistoryPanel();
+            });
+
+            $('#historyCloseBtn, #historyOverlay').on('click', function() {
+                $('#historyPanel').removeClass('active');
+                $('#historyOverlay').removeClass('active');
             });
         });
     </script>

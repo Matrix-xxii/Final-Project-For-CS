@@ -12,10 +12,15 @@
 
     // Cashier sees two separate sections
     var pendingOrders  = Model.Where(o => (string)o.status == "Pending").ToList();
-    var servedOrders   = Model.Where(o => (string)o.status == "Served").ToList();
 
-    // All other roles see one list
+    // Served orders are grouped by table (one entry per table)
+    var servedByTable = (ViewData["ServedByTable"] as List<dynamic>) ?? new List<dynamic>();
+
+    // Chief / Waiter — individual order cards
     var singleQueue = Model.Where(o => (string)o.status != "Pending" && (string)o.status != "Served").ToList();
+
+    // Cleaner — grouped by table (one card per table)
+    var cleaningByTable = (ViewData["CleaningByTable"] as List<dynamic>) ?? new List<dynamic>();
 
     // Section label/icon for non-cashier roles
     var sectionIcon  = role switch {
@@ -122,7 +127,7 @@
                     break;
             }
             @pageTitle
-            <span class="badge badge-secondary ml-2" id="totalBadge">@Model.Count</span>
+            <span class="badge badge-secondary ml-2" id="totalBadge">@(role == "Cashier" ? pendingOrders.Count + servedByTable.Count : role == "Cleaner" ? cleaningByTable.Count : Model.Count)</span>
         </h1>
     </div>
 </div>
@@ -185,14 +190,14 @@
                 </div>
             }
 
-            <!-- ===== CASHIER: Served Section (awaiting payment + clean) ===== -->
+            <!-- ===== CASHIER: Served Section (awaiting payment + clean) — grouped by table ===== -->
             <div class="section-divider">
                 <i class="fas fa-hand-holding-usd mr-1 text-success"></i>
                 Served — Awaiting Payment &amp; Cleanup
-                <span class="badge badge-success ml-1">@servedOrders.Count</span>
+                <span class="badge badge-success ml-1">@servedByTable.Count</span>
             </div>
 
-            @if (!servedOrders.Any())
+            @if (!servedByTable.Any())
             {
                 <div class="empty-queue">
                     <i class="fas fa-inbox text-muted"></i>
@@ -202,29 +207,114 @@
             else
             {
                 <div class="row">
-                    @foreach (var o in servedOrders)
+                    @foreach (var t in servedByTable)
                     {
-                        <div class="col-md-6 col-lg-4 mb-3" id="card-@o.order_id">
-                            <div class="card order-card h-100">
-                                <div class="card-body">
-                                    <div class="d-flex justify-content-between align-items-start mb-2">
-                                        <div>
-                                            <div class="order-table-badge text-dark">Table @o.table_label</div>
-                                            <div class="order-time mt-1">
-                                                <i class="fas fa-clock mr-1"></i>
-                                                @(((DateTime)o.created_at).ToString("dd MMM HH:mm"))
-                                            </div>
-                                        </div>
-                                        <span class="badge badge-success">@o.status</span>
+                        var safeId  = ((string)t.table_label).Replace(" ", "-");
+                        var rawItems = ((string)t.items_raw).Split('|');
+                        var total   = (decimal)t.total_cost;
+                        <div class="col-md-6 col-lg-4 mb-3" id="table-card-@safeId">
+                            <div class="card order-card h-100 border-success" style="border-width:2px;">
+                                <div class="card-header d-flex justify-content-between align-items-center py-2"
+                                     style="background:#f8fff8; border-bottom:1px solid #c3e6cb;">
+                                    <span class="order-table-badge text-dark">
+                                        <i class="fas fa-chair mr-1 text-success"></i>Table @t.table_label
+                                    </span>
+                                    <span class="badge badge-success">Served</span>
+                                </div>
+                                <div class="card-body pb-2">
+                                    <div class="order-time mb-2">
+                                        <i class="fas fa-clock mr-1"></i>
+                                        First order: @(((DateTime)t.first_ordered_at).ToString("dd MMM HH:mm"))
                                     </div>
-                                    <div class="order-items-text mb-3">
-                                        <i class="fas fa-receipt mr-1 text-muted"></i>
-                                        @o.items_summary
+
+                                    <!-- Item list -->
+                                    <ul class="list-unstyled order-items-text mb-2" style="padding-left:4px;">
+                                        @foreach (var item in rawItems)
+                                        {
+                                            if (!string.IsNullOrWhiteSpace(item))
+                                            {
+                                                <li><i class="fas fa-utensils mr-1 text-muted" style="font-size:0.7rem;"></i>@item.Trim()</li>
+                                            }
+                                        }
+                                    </ul>
+
+                                    <!-- Total cost -->
+                                    <div class="d-flex justify-content-between align-items-center mt-2 pt-2"
+                                         style="border-top:1px dashed #ddd;">
+                                        <span style="font-weight:700; font-size:0.9rem; color:#555;">Total</span>
+                                        <span style="font-weight:800; font-size:1.05rem; color:#27ae60;">
+                                            @total.ToString("N0") MMK
+                                        </span>
                                     </div>
-                                    <div class="d-flex flex-wrap" style="gap:6px;">
-                                        <button class="btn btn-secondary btn-sm btn-action"
-                                                onclick="doAction(@o.order_id, 'Cleaning', this)">
-                                            <i class="fas fa-broom mr-1"></i>Send to Clean
+                                </div>
+                                <div class="card-footer py-2" style="background:#f8fff8;">
+                                    <button class="btn btn-secondary btn-sm btn-action w-100"
+                                            onclick="doTableAction('@t.order_ids', 'Cleaning', 'table-card-@safeId', this)">
+                                        <i class="fas fa-broom mr-1"></i>Send to Clean
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        }
+        else if (role == "Cleaner")
+        {
+            <!-- ===== CLEANER: Grouped by table ===== -->
+            <div class="section-divider">
+                <i class="fas fa-broom mr-1 text-secondary"></i>
+                Tables to Clean
+                <span class="badge badge-secondary ml-1">@cleaningByTable.Count</span>
+            </div>
+
+            @if (!cleaningByTable.Any())
+            {
+                <div class="empty-queue">
+                    <i class="fas fa-check-circle text-success"></i>
+                    <p>Queue is empty — all caught up!</p>
+                </div>
+            }
+            else
+            {
+                <div class="row">
+                    @foreach (var t in cleaningByTable)
+                    {
+                        var safeId   = ((string)t.table_label).Replace(" ", "-");
+                        var rawItems = ((string)t.items_raw).Split('|');
+                        <div class="col-md-6 col-lg-4 mb-3" id="table-card-@safeId">
+                            <div class="card order-card h-100 border-secondary" style="border-width:2px;">
+                                <div class="card-header d-flex justify-content-between align-items-center py-2"
+                                     style="background:#f9f9f9; border-bottom:1px solid #ddd;">
+                                    <span class="order-table-badge text-dark">
+                                        <i class="fas fa-chair mr-1 text-secondary"></i>Table @t.table_label
+                                    </span>
+                                    <span class="badge badge-secondary">Cleaning</span>
+                                </div>
+                                <div class="card-body pb-2">
+                                    <div class="order-time mb-2">
+                                        <i class="fas fa-clock mr-1"></i>
+                                        First order: @(((DateTime)t.first_ordered_at).ToString("dd MMM HH:mm"))
+                                    </div>
+                                    <ul class="list-unstyled order-items-text mb-1" style="padding-left:4px;">
+                                        @foreach (var item in rawItems)
+                                        {
+                                            if (!string.IsNullOrWhiteSpace(item))
+                                            {
+                                                <li><i class="fas fa-utensils mr-1 text-muted" style="font-size:0.7rem;"></i>@item.Trim()</li>
+                                            }
+                                        }
+                                    </ul>
+                                </div>
+                                <div class="card-footer py-2" style="background:#f9f9f9;">
+                                    <div class="d-flex" style="gap:6px;">
+                                        <button class="btn btn-success btn-sm btn-action flex-fill"
+                                                onclick="doTableAction('@t.order_ids', 'Done', 'table-card-@safeId', this)">
+                                            <i class="fas fa-check-circle mr-1"></i>Done
+                                        </button>
+                                        <button class="btn btn-danger btn-sm btn-action flex-fill"
+                                                onclick="doTableAction('@t.order_ids', 'Cancelled', 'table-card-@safeId', this)">
+                                            <i class="fas fa-times mr-1"></i>Cancel
                                         </button>
                                     </div>
                                 </div>
@@ -236,7 +326,7 @@
         }
         else
         {
-            <!-- ===== SINGLE QUEUE (Chief / Waiter / Cleaner) ===== -->
+            <!-- ===== SINGLE QUEUE (Chief / Waiter) ===== -->
             <div class="section-divider">
                 <i class="fas @sectionIcon mr-1 @sectionColor"></i>
                 @sectionLabel
@@ -294,6 +384,7 @@
 
 @section Scripts {
 <script>
+    // Single-order action (Pending approvals, non-cashier queues)
     function doAction(orderId, newStatus, btn) {
         var label = btn.textContent.trim();
         if (!confirm('Set order #' + orderId + ' to "' + newStatus + '"?')) return;
@@ -308,14 +399,7 @@
             contentType: 'application/json',
             data: JSON.stringify({ order_id: orderId, new_status: newStatus }),
             success: function () {
-                if (card) {
-                    card.style.transition = 'opacity 0.3s';
-                    card.style.opacity = '0';
-                    setTimeout(function () {
-                        card.remove();
-                        updateBadgeCount();
-                    }, 300);
-                }
+                fadeRemove(card);
             },
             error: function (xhr) {
                 var msg = (xhr.responseJSON && xhr.responseJSON.message)
@@ -328,8 +412,46 @@
         });
     }
 
+    // Table-grouped action (Cashier "Send to Clean" — moves all orders for a table at once)
+    function doTableAction(orderIds, newStatus, cardId, btn) {
+        var label = btn.textContent.trim();
+        if (!confirm('Mark all orders for this table as "' + newStatus + '" and send to cleaner?')) return;
+
+        var card = document.getElementById(cardId);
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Wait...';
+
+        $.ajax({
+            type: 'POST',
+            url: '/api/order/update_table_status',
+            contentType: 'application/json',
+            data: JSON.stringify({ order_ids: orderIds, new_status: newStatus }),
+            success: function () {
+                fadeRemove(card);
+            },
+            error: function (xhr) {
+                var msg = (xhr.responseJSON && xhr.responseJSON.message)
+                    ? xhr.responseJSON.message
+                    : 'Failed to update. Please try again.';
+                alert(msg);
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-redo mr-1"></i>' + label;
+            }
+        });
+    }
+
+    function fadeRemove(card) {
+        if (!card) return;
+        card.style.transition = 'opacity 0.3s';
+        card.style.opacity = '0';
+        setTimeout(function () {
+            card.remove();
+            updateBadgeCount();
+        }, 300);
+    }
+
     function updateBadgeCount() {
-        var remaining = document.querySelectorAll('[id^="card-"]').length;
+        var remaining = document.querySelectorAll('[id^="card-"], [id^="table-card-"]').length;
         var badge = document.getElementById('totalBadge');
         if (badge) badge.textContent = remaining;
     }

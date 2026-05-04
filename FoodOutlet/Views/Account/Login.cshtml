@@ -33,7 +33,7 @@
         }
 
         .login-header {
-            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            background: linear-gradient(135deg, #c0392b, #c0392b);
             padding: 2rem;
             text-align: center;
             color: #fff;
@@ -71,7 +71,7 @@
         }
 
         .form-control:focus {
-            border-color: #e74c3c;
+            border-color: #c0392b;
             box-shadow: 0 0 0 0.2rem rgba(231,76,60,0.2);
         }
 
@@ -85,8 +85,9 @@
         }
 
         .btn-signin {
-            background: linear-gradient(135deg, #e74c3c, #c0392b);
-            border: none;
+            background: linear-gradient(135deg, #e74c3c, #c0392b) !important;
+            border: none !important;
+            color: #fff !important;
             border-radius: 6px;
             height: 44px;
             font-size: 1rem;
@@ -97,11 +98,15 @@
 
         .btn-signin:hover {
             opacity: 0.9;
+            color: #fff !important;
         }
 
         .error-alert {
             border-radius: 6px;
             font-size: 0.9rem;
+            background-color: #fdf0f0 !important;
+            border-color: #c0392b !important;
+            color: #c0392b !important;
         }
 
         .login-footer {
@@ -165,7 +170,7 @@
             </div>
 
             <div class="form-group mt-4">
-                <button type="submit" class="btn btn-danger btn-signin btn-block">
+                <button type="submit" class="btn btn-signin btn-block">
                     <i class="fas fa-sign-in-alt mr-1"></i> Sign In
                 </button>
             </div>
