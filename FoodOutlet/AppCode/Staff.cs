@@ -204,11 +204,13 @@ ORDER BY r.recipe_name, r.id";
                 conn.Open();
 
                 string sql = @"
-                    SELECT r.id, r.registration_name AS name, r.email, r.phone_no, r.address, r.role_id,
+                    SELECT r.id, r.registration_name AS name, r.email, r.phone_no, r.address,
+                           r.photo, ro.role_name,
                            rs.reason, rs.resign_at AS resign
                     FROM registrations r
                     INNER JOIN resigns rs ON r.id = rs.registration_id
-                    ORDER BY (rs.resign_at IS NOT NULL) DESC, rs.resign_at DESC, rs.id DESC";
+                    JOIN roles ro ON ro.id = r.role_id
+                    ORDER BY rs.resign_at DESC, rs.id DESC";
 
                 using (var cmd = new MySqlCommand(sql, conn))
                 using (var rdr = cmd.ExecuteReader())
@@ -217,14 +219,15 @@ ORDER BY r.recipe_name, r.id";
                     {
                         list.Add(new
                         {
-                            id = rdr["id"] == DBNull.Value ? 0 : Convert.ToInt32(rdr["id"]),
-                            name = rdr["name"]?.ToString() ?? "",
-                            email = rdr["email"]?.ToString() ?? "",
-                            phone_no = rdr["phone_no"]?.ToString() ?? "",
-                            address = rdr["address"]?.ToString() ?? "",
-                            role_id = rdr["role_id"] == DBNull.Value ? 0 : Convert.ToInt32(rdr["role_id"]),
-                            reason = rdr["reason"]?.ToString() ?? "",
-                            resign = rdr["resign"] == DBNull.Value ? (DateTime?)null : Convert.ToDateTime(rdr["resign"])
+                            id        = rdr["id"] == DBNull.Value ? 0 : Convert.ToInt32(rdr["id"]),
+                            name      = rdr["name"]?.ToString() ?? "",
+                            email     = rdr["email"]?.ToString() ?? "",
+                            phone_no  = rdr["phone_no"]?.ToString() ?? "",
+                            address   = rdr["address"]?.ToString() ?? "",
+                            photo     = rdr["photo"]?.ToString() ?? "",
+                            role_name = rdr["role_name"]?.ToString() ?? "",
+                            reason    = rdr["reason"]?.ToString() ?? "",
+                            resign    = rdr["resign"] == DBNull.Value ? (DateTime?)null : Convert.ToDateTime(rdr["resign"])
                         });
                     }
                 }
