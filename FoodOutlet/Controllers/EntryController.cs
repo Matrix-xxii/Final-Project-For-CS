@@ -1,11 +1,13 @@
 ﻿using FoodOutlet.AppCode;
 using FoodOutlet.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MySql.Data.MySqlClient;
 using QRCoder;
 
 namespace FoodOutlet.Controllers
 {
+    [Authorize]
     public class EntryController : Controller
     {
         private readonly AppCode.Staff _staff;

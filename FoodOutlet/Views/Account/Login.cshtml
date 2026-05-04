@@ -1,0 +1,184 @@
+@{
+    Layout = null;
+    var errorMsg = ViewData["Error"] as string;
+    var returnUrl = ViewData["ReturnUrl"] as string;
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Sign In — Food Outlet</title>
+
+    <link rel="stylesheet" href="~/plugins/fontawesome-free/css/all.min.css" />
+    <link rel="stylesheet" href="~/plugins/icheck-bootstrap/icheck-bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/adminlte.min.css" />
+
+    <style>
+        body {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .login-card {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+            width: 100%;
+            max-width: 420px;
+            overflow: hidden;
+        }
+
+        .login-header {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            padding: 2rem;
+            text-align: center;
+            color: #fff;
+        }
+
+        .login-header img {
+            width: 72px;
+            height: 72px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid rgba(255,255,255,0.4);
+            margin-bottom: 0.75rem;
+        }
+
+        .login-header h4 {
+            margin: 0;
+            font-size: 1.4rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+
+        .login-header small {
+            font-size: 0.85rem;
+            opacity: 0.85;
+        }
+
+        .login-body {
+            padding: 2rem 2.25rem 1.5rem;
+        }
+
+        .form-control {
+            border-radius: 6px;
+            height: 44px;
+            font-size: 0.95rem;
+        }
+
+        .form-control:focus {
+            border-color: #e74c3c;
+            box-shadow: 0 0 0 0.2rem rgba(231,76,60,0.2);
+        }
+
+        .input-group-text {
+            background: #f8f9fa;
+            border-right: none;
+        }
+
+        .input-group .form-control {
+            border-left: none;
+        }
+
+        .btn-signin {
+            background: linear-gradient(135deg, #e74c3c, #c0392b);
+            border: none;
+            border-radius: 6px;
+            height: 44px;
+            font-size: 1rem;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            transition: opacity 0.2s;
+        }
+
+        .btn-signin:hover {
+            opacity: 0.9;
+        }
+
+        .error-alert {
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+
+        .login-footer {
+            text-align: center;
+            padding: 0.75rem;
+            background: #f8f9fa;
+            font-size: 0.8rem;
+            color: #888;
+            border-top: 1px solid #eee;
+        }
+
+        label {
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: #555;
+            margin-bottom: 0.3rem;
+        }
+    </style>
+</head>
+<body>
+
+<div class="login-card">
+    <div class="login-header">
+        <img src="~/img/pj_photo.jpg" alt="Food Outlet Logo" onerror="this.style.display='none'" />
+        <h4>Food Outlet</h4>
+        <small>Staff Portal — Sign in to continue</small>
+    </div>
+
+    <div class="login-body">
+        @if (!string.IsNullOrEmpty(errorMsg))
+        {
+            <div class="alert alert-danger error-alert" role="alert">
+                <i class="fas fa-exclamation-circle mr-1"></i> @errorMsg
+            </div>
+        }
+
+        <form method="post" asp-controller="Account" asp-action="Login">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="returnUrl" value="@returnUrl" />
+
+            <div class="form-group">
+                <label for="email">Email</label>
+                <div class="input-group">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+                    </div>
+                    <input id="email" name="email" type="email" class="form-control"
+                           placeholder="Enter your email" autofocus required />
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="password">Password</label>
+                <div class="input-group">
+                    <div class="input-group-prepend">
+                        <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                    </div>
+                    <input id="password" name="password" type="password" class="form-control"
+                           placeholder="Enter your password" required />
+                </div>
+            </div>
+
+            <div class="form-group mt-4">
+                <button type="submit" class="btn btn-danger btn-signin btn-block">
+                    <i class="fas fa-sign-in-alt mr-1"></i> Sign In
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <div class="login-footer">
+        &copy; @DateTime.Now.Year Food Outlet — All rights reserved
+    </div>
+</div>
+
+<script src="~/plugins/jquery/jquery.min.js"></script>
+<script src="~/plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
+
+</body>
+</html>

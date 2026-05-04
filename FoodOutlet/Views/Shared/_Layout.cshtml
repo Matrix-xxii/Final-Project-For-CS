@@ -269,7 +269,7 @@
                     </a>
                 </li>
                 <li class="nav-item d-none d-sm-inline-block">
-                    <a class="nav-link" data-widget="Log Out" href="#" role="button">
+                    <a class="nav-link" asp-controller="Account" asp-action="Logout" title="Sign Out">
                         <i class="fas fa-sign-out-alt"></i>
                     </a>
                 </li>
@@ -286,96 +286,130 @@
 
             <!-- Sidebar -->
             <div class="sidebar">
-                <!-- Sidebar user panel (optional) -->
+                <!-- Sidebar user panel -->
+                @{
+                    var loggedName     = User.FindFirst("Name")?.Value ?? "Staff";
+                    var loggedRole     = User.FindFirst("RoleName")?.Value ?? "";
+                    var loggedPhoto    = User.FindFirst("Photo")?.Value ?? "";
+                    var photoSrc       = string.IsNullOrEmpty(loggedPhoto)
+                                            ? "/img/user2-160x160.jpg"
+                                            : (loggedPhoto.StartsWith("/") ? loggedPhoto : "/uploads/staff/" + loggedPhoto);
+                }
                 <div class="user-panel mt-3 pb-3 mb-3 d-flex">
                     <div class="image">
-                        <img src="~/img/user2-160x160.jpg" class="img-circle elevation-2" alt="User Image">
+                        <img src="@photoSrc" class="img-circle elevation-2" alt="@loggedName"
+                             onerror="this.src='/img/user2-160x160.jpg'" />
                     </div>
                     <div class="info">
-                        <a href="#" class="d-block color-white">Alexander Pierce</a>
+                        <a href="#" class="d-block color-white">@loggedName</a>
+                        <small class="d-block" style="color:rgba(255,255,255,0.55); font-size:0.75rem;">@loggedRole</small>
                     </div>
                 </div>
 
                 <!-- Sidebar Menu -->
                 <nav class="mt-2">
                     <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
-                        <li class="nav-item has-treeview">
-                            <a asp-controller="Entry" asp-action="Registration" class="nav-link">
-                                <i class="nav-icon fas fa-user"></i>
-                                <p>Staff<i class="fas fa-angle-left right"></i></p>
-                            </a>
-                            <ul class="nav nav-treeview">
-                                <li class="nav-item">
-                                    <a asp-controller="Entry" asp-action="Registration" class="nav-link nav-link-treeview">
-                                        <i class="fas fa-solid fa-address-card"></i>
-                                        <p>Staff Registration</p>
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a asp-controller="Entry" asp-action="Role" class="nav-link nav-link-treeview">
-                                        <i class="fas fa-user-tag"></i>
-                                        <p>Staff Role</p>
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a asp-controller="Entry" asp-action="StaffList" class="nav-link nav-link-treeview">
-                                        <i class="fas fa-clipboard-list"></i>
-                                        <p>Staff List</p>
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a asp-controller="Entry" asp-action="StaffResignRecords" class="nav-link nav-link-treeview">
-                                        <i class="fas fa-user-times"></i>
-                                        <p>Staff Resign Records</p>
-                                    </a>
-                                </li>
-                            </ul>
-                        </li>
-                        <!-- menu group for categories/recipes -->
-                        <li class="nav-item has-treeview">
-                            <a href="#" class="nav-link">
-                                <i class="nav-icon fas fa-book"></i>
-                                <p>Menu<i class="fas fa-angle-left right"></i></p>
-                            </a>
-                            <ul class="nav nav-treeview">
-                                <li class="nav-item">
-                                    <a asp-controller="Entry" asp-action="Category" class="nav-link nav-link-treeview">
-                                        <i class="fas fa-list"></i>
-                                        <p>Categories</p>
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a asp-controller="Entry" asp-action="Recipe" class="nav-link nav-link-treeview">
-                                        <i class="fas fa-hamburger"></i>
-                                        <p>Recipes</p>
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a asp-controller="Entry" asp-action="RecipeList" class="nav-link nav-link-treeview">
-                                        <i class="fas fa-utensils"></i>
-                                        <p>Recipe List</p>
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    
-                                </li>
-                            </ul>
-                        </li>
-                        
-                        <li class="nav-item">
-                            <a asp-controller="Entry" asp-action="Inventory" class="nav-link nav-link-treeview">
-                                <i class="nav-icon fas fa-columns"></i>
-                                <p>Inventory</p>
-                            </a>
-                        </li>
 
-                        <li class="nav-item">
-                            <a asp-controller="Entry" asp-action="TableRegistration" class="nav-link nav-link-treeview">
-                                <i class="nav-icon fas fa-chair"></i>
-                                <p>TableRegistration</p>
-                            </a>
-                        </li>
-                            
+                        @if (loggedRole == "Admin")
+                        {
+                            <!-- Staff group — Admin only -->
+                            <li class="nav-item has-treeview">
+                                <a asp-controller="Entry" asp-action="Registration" class="nav-link">
+                                    <i class="nav-icon fas fa-user"></i>
+                                    <p>Staff<i class="fas fa-angle-left right"></i></p>
+                                </a>
+                                <ul class="nav nav-treeview">
+                                    <li class="nav-item">
+                                        <a asp-controller="Entry" asp-action="Registration" class="nav-link nav-link-treeview">
+                                            <i class="fas fa-solid fa-address-card"></i>
+                                            <p>Staff Registration</p>
+                                        </a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a asp-controller="Entry" asp-action="Role" class="nav-link nav-link-treeview">
+                                            <i class="fas fa-user-tag"></i>
+                                            <p>Staff Role</p>
+                                        </a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a asp-controller="Entry" asp-action="StaffList" class="nav-link nav-link-treeview">
+                                            <i class="fas fa-clipboard-list"></i>
+                                            <p>Staff List</p>
+                                        </a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a asp-controller="Entry" asp-action="StaffResignRecords" class="nav-link nav-link-treeview">
+                                            <i class="fas fa-user-times"></i>
+                                            <p>Staff Resign Records</p>
+                                        </a>
+                                    </li>
+                                </ul>
+                            </li>
+
+                            <!-- Menu group — Admin only -->
+                            <li class="nav-item has-treeview">
+                                <a href="#" class="nav-link">
+                                    <i class="nav-icon fas fa-book"></i>
+                                    <p>Menu<i class="fas fa-angle-left right"></i></p>
+                                </a>
+                                <ul class="nav nav-treeview">
+                                    <li class="nav-item">
+                                        <a asp-controller="Entry" asp-action="Category" class="nav-link nav-link-treeview">
+                                            <i class="fas fa-list"></i>
+                                            <p>Categories</p>
+                                        </a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a asp-controller="Entry" asp-action="Recipe" class="nav-link nav-link-treeview">
+                                            <i class="fas fa-hamburger"></i>
+                                            <p>Recipes</p>
+                                        </a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a asp-controller="Entry" asp-action="RecipeList" class="nav-link nav-link-treeview">
+                                            <i class="fas fa-utensils"></i>
+                                            <p>Recipe List</p>
+                                        </a>
+                                    </li>
+                                </ul>
+                            </li>
+
+                            <!-- Inventory — Admin only -->
+                            <li class="nav-item">
+                                <a asp-controller="Entry" asp-action="Inventory" class="nav-link nav-link-treeview">
+                                    <i class="nav-icon fas fa-columns"></i>
+                                    <p>Inventory</p>
+                                </a>
+                            </li>
+
+                            <!-- Table Registration — Admin only -->
+                            <li class="nav-item">
+                                <a asp-controller="Entry" asp-action="TableRegistration" class="nav-link nav-link-treeview">
+                                    <i class="nav-icon fas fa-chair"></i>
+                                    <p>Table Registration</p>
+                                </a>
+                            </li>
+                        }
+
+                        @if (loggedRole != "Admin")
+                        {
+                            <!-- Status — all non-Admin roles -->
+                            <li class="nav-item">
+                                <a asp-controller="Staff" asp-action="Status" class="nav-link">
+                                    <i class="nav-icon fas fa-id-badge"></i>
+                                    <p>My Status</p>
+                                </a>
+                            </li>
+
+                            <!-- Resign Form — all non-Admin roles -->
+                            <li class="nav-item">
+                                <a asp-controller="Staff" asp-action="ResignForm" class="nav-link">
+                                    <i class="nav-icon fas fa-file-signature"></i>
+                                    <p>Resign Form</p>
+                                </a>
+                            </li>
+                        }
+
                     </ul>
                 </nav>
                 <!-- /.sidebar-menu -->

@@ -1,0 +1,104 @@
+@{
+    ViewData["Title"] = "Resign Form";
+    var alreadyResigned = (bool)(ViewData["AlreadyResigned"] ?? false);
+    var errorMsg        = ViewData["Error"] as string;
+    var successMsg      = TempData["Success"] as string;
+    var staffName       = User.FindFirst("Name")?.Value ?? "Staff";
+}
+
+<div class="content-header">
+    <div class="container-fluid">
+        <h1 class="m-0 text-dark" style="font-size:1.4rem; font-weight:700;">
+            <i class="fas fa-file-signature mr-2 text-danger"></i> Resign Form
+        </h1>
+    </div>
+</div>
+
+<section class="content">
+    <div class="container-fluid">
+        <div class="row justify-content-center">
+            <div class="col-md-7 col-lg-5">
+
+                @if (!string.IsNullOrEmpty(successMsg))
+                {
+                    <div class="alert alert-success alert-dismissible fade show">
+                        <i class="fas fa-check-circle mr-1"></i> @successMsg
+                        <button type="button" class="close" data-dismiss="alert">&times;</button>
+                    </div>
+                }
+
+                @if (alreadyResigned)
+                {
+                    <div class="card card-danger card-outline">
+                        <div class="card-body text-center py-5">
+                            <i class="fas fa-user-times fa-3x text-danger mb-3"></i>
+                            <h5 class="font-weight-bold">Resignation Already Submitted</h5>
+                            <p class="text-muted mb-0">
+                                Your resignation has already been recorded.<br />
+                                Please contact the administrator for further assistance.
+                            </p>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <div class="card card-outline card-danger">
+                        <div class="card-header">
+                            <h3 class="card-title font-weight-bold text-danger">
+                                <i class="fas fa-exclamation-triangle mr-1"></i> Submit Resignation
+                            </h3>
+                        </div>
+                        <div class="card-body">
+
+                            <p class="text-muted mb-3">
+                                Hello <strong>@staffName</strong>, please provide your reason for resignation below.
+                                This action <strong>cannot be undone</strong>.
+                            </p>
+
+                            @if (!string.IsNullOrEmpty(errorMsg))
+                            {
+                                <div class="alert alert-danger">
+                                    <i class="fas fa-exclamation-circle mr-1"></i> @errorMsg
+                                </div>
+                            }
+
+                            <form id="resignForm" method="post"
+                                  asp-controller="Staff" asp-action="ResignForm">
+                                @Html.AntiForgeryToken()
+
+                                <div class="form-group">
+                                    <label for="reason" class="font-weight-bold">Reason for Resignation</label>
+                                    <textarea id="reason" name="reason" class="form-control" rows="5"
+                                              placeholder="Please describe your reason..." required
+                                              style="resize:vertical;"></textarea>
+                                </div>
+
+                                <div class="form-group mb-0">
+                                    <button type="button" class="btn btn-danger btn-block" onclick="confirmResign()">
+                                        <i class="fas fa-paper-plane mr-1"></i> Submit Resignation
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                }
+
+            </div>
+        </div>
+    </div>
+</section>
+
+@section Scripts {
+<script>
+    function confirmResign() {
+        var reason = document.getElementById('reason').value.trim();
+        if (!reason) {
+            alert('Please enter your reason before submitting.');
+            return;
+        }
+        if (confirm('Are you sure you want to submit your resignation? This cannot be undone.')) {
+            document.getElementById('resignForm').submit();
+        }
+    }
+</script>
+}

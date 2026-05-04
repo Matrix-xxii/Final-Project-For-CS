@@ -1188,5 +1188,161 @@ ORDER BY r.recipe_name, r.id";
         }
 
         #endregion
+
+        #region Staff Self-Service
+
+        public Models.Staff? GetMyStatus(int staffId)
+        {
+            try
+            {
+                using (var conn = _connectionFactory.CreateConnection())
+                {
+                    conn.Open();
+                    const string sql = @"
+                        SELECT r.id, r.registration_name AS name, r.email, r.phone_no, r.address, r.photo,
+                               ro.role_name,
+                               CASE WHEN rs.registration_id IS NULL THEN 'In Service' ELSE 'Resigned' END AS status
+                        FROM registrations r
+                        JOIN roles ro ON ro.id = r.role_id
+                        LEFT JOIN resigns rs ON rs.registration_id = r.id
+                        WHERE r.id = @id
+                        LIMIT 1";
+
+                    using (var cmd = new MySqlCommand(sql, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@id", staffId);
+                        using (var rdr = cmd.ExecuteReader())
+                        {
+                            if (rdr.Read())
+                            {
+                                return new Models.Staff
+                                {
+                                    id        = Convert.ToInt32(rdr["id"]),
+                                    name      = rdr["name"]?.ToString() ?? "",
+                                    email     = rdr["email"]?.ToString() ?? "",
+                                    phone_no  = rdr["phone_no"]?.ToString() ?? "",
+                                    address   = rdr["address"]?.ToString() ?? "",
+                                    photo     = rdr["photo"]?.ToString() ?? "",
+                                    role_name = rdr["role_name"]?.ToString() ?? "",
+                                    status    = rdr["status"]?.ToString() ?? "",
+                                };
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("GetMyStatus error: " + ex.Message);
+            }
+            return null;
+        }
+
+        public bool HasResigned(int staffId)
+        {
+            try
+            {
+                using (var conn = _connectionFactory.CreateConnection())
+                {
+                    conn.Open();
+                    using (var cmd = new MySqlCommand(
+                        "SELECT COUNT(*) FROM resigns WHERE registration_id = @id", conn))
+                    {
+                        cmd.Parameters.AddWithValue("@id", staffId);
+                        var count = Convert.ToInt32(cmd.ExecuteScalar());
+                        return count > 0;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("HasResigned error: " + ex.Message);
+            }
+            return false;
+        }
+
+        public Models.Message SubmitResign(int staffId, string reason)
+        {
+            var msg = new Models.Message();
+            try
+            {
+                if (HasResigned(staffId))
+                {
+                    msg.message = "Error: You have already submitted a resignation.";
+                    return msg;
+                }
+
+                using (var conn = _connectionFactory.CreateConnection())
+                {
+                    conn.Open();
+                    using (var cmd = new MySqlCommand(
+                        "INSERT INTO resigns (registration_id, reason, resign_at) VALUES (@id, @reason, NOW())", conn))
+                    {
+                        cmd.Parameters.AddWithValue("@id", staffId);
+                        cmd.Parameters.AddWithValue("@reason", reason ?? "");
+                        cmd.ExecuteNonQuery();
+                        msg.message = "Success";
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                msg.message = "Error: " + ex.Message;
+                Console.WriteLine("SubmitResign error: " + ex.Message);
+            }
+            return msg;
+        }
+
+        #endregion
+
+        #region Auth
+
+        public Models.Staff? LoginStaff(string email, string password)
+        {
+            try
+            {
+                using (var conn = _connectionFactory.CreateConnection())
+                {
+                    conn.Open();
+                    const string sql = @"
+                        SELECT r.id, r.registration_name AS name, r.email, r.photo,
+                               ro.id AS role_id, ro.role_name
+                        FROM registrations r
+                        JOIN roles ro ON ro.id = r.role_id
+                        WHERE r.email = @email AND r.password_hash = @password
+                        LIMIT 1";
+
+                    using (var cmd = new MySqlCommand(sql, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@email", email);
+                        cmd.Parameters.AddWithValue("@password", password);
+
+                        using (var rst = cmd.ExecuteReader())
+                        {
+                            if (rst.Read())
+                            {
+                                return new Models.Staff
+                                {
+                                    id        = rst["id"] != DBNull.Value ? Convert.ToInt32(rst["id"]) : 0,
+                                    name      = rst["name"]?.ToString() ?? "",
+                                    email     = rst["email"]?.ToString() ?? "",
+                                    photo     = rst["photo"]?.ToString() ?? "",
+                                    role_id   = rst["role_id"] != DBNull.Value ? Convert.ToInt32(rst["role_id"]) : 0,
+                                    role_name = rst["role_name"]?.ToString() ?? "",
+                                };
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("LoginStaff error: " + ex.Message);
+            }
+
+            return null;
+        }
+
+        #endregion
     }
 }

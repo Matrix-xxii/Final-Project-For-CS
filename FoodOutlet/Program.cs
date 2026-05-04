@@ -1,11 +1,20 @@
 ﻿using FoodOutlet.AppCode;
+using Microsoft.AspNetCore.Authentication.Cookies;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddScoped<IDbConnectionFactory, MySqlConnectionFactory>();
 builder.Services.AddScoped<Staff>();
-builder.Services.AddScoped<ImageProcessingService>(); // ← ADD THIS LINE
+builder.Services.AddScoped<ImageProcessingService>();
 
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
+    {
+        options.LoginPath = "/Account/Login";
+        options.LogoutPath = "/Account/Logout";
+        options.ExpireTimeSpan = TimeSpan.FromHours(8);
+        options.SlidingExpiration = true;
+    });
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
@@ -25,6 +34,7 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 // Map controller routes with attribute routing (for [HttpGet("table/{tableNumber}")])

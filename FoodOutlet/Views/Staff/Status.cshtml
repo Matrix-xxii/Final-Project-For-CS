@@ -1,0 +1,87 @@
+@model FoodOutlet.Models.Staff
+@{
+    ViewData["Title"] = "My Status";
+    var photoSrc = string.IsNullOrEmpty(Model?.photo)
+        ? "/img/user2-160x160.jpg"
+        : (Model.photo.StartsWith("/") ? Model.photo : "/uploads/staff/" + Model.photo);
+    var isResigned = Model?.status == "Resigned";
+}
+
+<div class="content-header">
+    <div class="container-fluid">
+        <h1 class="m-0 text-dark" style="font-size:1.4rem; font-weight:700;">
+            <i class="fas fa-id-badge mr-2 text-primary"></i> My Status
+        </h1>
+    </div>
+</div>
+
+<section class="content">
+    <div class="container-fluid">
+        @if (Model == null)
+        {
+            <div class="alert alert-warning">Unable to load your profile. Please try again.</div>
+        }
+        else
+        {
+            <div class="row justify-content-center">
+                <div class="col-md-7 col-lg-5">
+                    <div class="card card-primary card-outline">
+                        <div class="card-body text-center pt-4 pb-3">
+
+                            <!-- Profile Photo -->
+                            <div class="mb-3">
+                                <img src="@photoSrc" alt="@Model.name"
+                                     onerror="this.src='/img/user2-160x160.jpg'"
+                                     style="width:110px;height:110px;border-radius:50%;object-fit:cover;
+                                            border:3px solid @(isResigned ? "#dc3545" : "#007bff");
+                                            box-shadow:0 4px 14px rgba(0,0,0,0.15);" />
+                            </div>
+
+                            <!-- Name & Role -->
+                            <h4 class="mb-0 font-weight-bold">@Model.name</h4>
+                            <span class="badge badge-secondary mt-1 mb-3" style="font-size:0.8rem;">
+                                @Model.role_name
+                            </span>
+
+                            <!-- Status Badge -->
+                            <div class="mb-3">
+                                @if (isResigned)
+                                {
+                                    <span class="badge badge-danger px-3 py-2" style="font-size:0.9rem;">
+                                        <i class="fas fa-user-times mr-1"></i> Resigned
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge badge-success px-3 py-2" style="font-size:0.9rem;">
+                                        <i class="fas fa-check-circle mr-1"></i> In Service
+                                    </span>
+                                }
+                            </div>
+
+                            <hr />
+
+                            <!-- Info rows -->
+                            <table class="table table-borderless table-sm text-left mb-0">
+                                <tbody>
+                                    <tr>
+                                        <td class="text-muted" style="width:40%;"><i class="fas fa-envelope mr-1"></i> Email</td>
+                                        <td class="font-weight-bold">@Model.email</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-muted"><i class="fas fa-phone mr-1"></i> Phone</td>
+                                        <td class="font-weight-bold">@(string.IsNullOrEmpty(Model.phone_no) ? "—" : Model.phone_no)</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-muted"><i class="fas fa-map-marker-alt mr-1"></i> Address</td>
+                                        <td class="font-weight-bold">@(string.IsNullOrEmpty(Model.address) ? "—" : Model.address)</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</section>
