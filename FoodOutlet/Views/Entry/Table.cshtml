@@ -157,6 +157,13 @@
         display: inline-block;
         margin-bottom: 0.4rem;
         width: fit-content;
+        transition: all 0.2s ease;
+    }
+
+    .food-card-category:hover {
+        background: #c0100b;
+        color: white;
+        cursor: pointer;
     }
 
     .food-card-stock {
@@ -263,6 +270,89 @@
     .empty-state p {
         font-size: 1.1rem;
         margin: 0.5rem 0;
+    }
+
+    .recipe-modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.25);
+        display: none;
+        align-items: flex-start;
+        justify-content: center;
+        z-index: 1200;
+        padding: 2rem 1rem;
+    }
+
+    .recipe-modal-overlay.active {
+        display: flex;
+    }
+
+    .recipe-modal-card {
+        width: min(980px, 100%);
+        background: #fff;
+        border-radius: 28px;
+        border: 3px solid #e4d31a;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.16);
+        padding: 1.75rem 2rem 2rem;
+    }
+
+    .recipe-modal-header {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 1.25rem;
+    }
+
+    .recipe-modal-img {
+        width: 76px;
+        height: 76px;
+        border-radius: 50%;
+        object-fit: cover;
+        flex-shrink: 0;
+    }
+
+    .recipe-modal-title {
+        font-size: 2rem;
+        font-weight: 800;
+        color: #111;
+        margin: 0;
+        flex: 1;
+    }
+
+    .recipe-modal-close {
+        border: none;
+        background: #ef3e3e;
+        color: #fff;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        font-size: 1.2rem;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .recipe-modal-desc {
+        color: #111;
+        font-size: 1.05rem;
+        line-height: 1.7;
+        margin-bottom: 1.25rem;
+        white-space: pre-line;
+    }
+
+    .recipe-modal-subtitle {
+        font-size: 1.95rem;
+        font-weight: 800;
+        margin: 0 0 0.6rem;
+        color: #111;
+    }
+
+    .recipe-modal-ingredients {
+        color: #111;
+        font-size: 1.05rem;
+        line-height: 1.65;
+        white-space: pre-line;
     }
 
     /* Responsive Design */
@@ -373,12 +463,22 @@
                         <div class="food-card-header">
                             <h3 class="food-card-title">@item.recipe_name</h3>
                             <span class="food-card-price">@($"{item.price:0.00} MMK")</span>
-                            <button class="food-card-info-btn" title="More info" onclick="showRecipeInfo('@item.id', '@item.recipe_name', '@(item.description?.Replace("'", "\\'") ?? "")')">
+                            <button class="food-card-info-btn"
+                                    title="More info"
+                                    data-recipe-name="@item.recipe_name"
+                                    data-recipe-img="@item.recipe_img"
+                                    data-recipe-desc="@item.description">
                                 <i class="fas fa-info"></i>
                             </button>
                         </div>
 
-                        <span class="food-card-category">@item.category_name</span>
+                        <span class="food-card-category" style="cursor: pointer;"
+                              data-recipe-name="@item.recipe_name"
+                              data-recipe-img="@item.recipe_img"
+                              data-recipe-desc="@item.description"
+                              onclick="showRecipeInfo('@item.recipe_name', '@(item.description?.Replace("'", "\\'") ?? "")', '@item.recipe_img')">
+                            @item.category_name
+                        </span>
                         <span class="food-card-stock @(item.stock_qty <= 0 ? "out-of-stock" : "in-stock")">
                             @(item.stock_qty <= 0 ? "Out of stock" : $"Stock: {item.stock_qty}")
                         </span>
@@ -409,6 +509,21 @@
                 <small>Please check back later</small>
             </div>
         }
+    </div>
+</div>
+
+<div class="recipe-modal-overlay" id="recipeDetailModal">
+    <div class="recipe-modal-card">
+        <div class="recipe-modal-header">
+            <img id="recipeModalImg" class="recipe-modal-img" src="/img/placeholder.png" alt="Recipe">
+            <h2 id="recipeModalTitle" class="recipe-modal-title">Recipe</h2>
+            <button class="recipe-modal-close" id="recipeModalClose" aria-label="Close">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <p id="recipeModalDesc" class="recipe-modal-desc"></p>
+        <h3 class="recipe-modal-subtitle">Ingredients</h3>
+        <p id="recipeModalIngredients" class="recipe-modal-ingredients"></p>
     </div>
 </div>
 
@@ -529,11 +644,42 @@
             console.log('Content received search:', searchTerm);
             searchRecipes(searchTerm);
         });
+
+        $(document).on('click', '.food-card-info-btn', function() {
+            showRecipeInfo(
+                $(this).data('recipe-name'),
+                $(this).data('recipe-desc'),
+                $(this).data('recipe-img')
+            );
+        });
+
+        $('#recipeModalClose').on('click', function() {
+            $('#recipeDetailModal').removeClass('active');
+        });
+
+        $('#recipeDetailModal').on('click', function(e) {
+            if (e.target.id === 'recipeDetailModal') {
+                $('#recipeDetailModal').removeClass('active');
+            }
+        });
     });
 
-    // Show recipe information modal/alert
-    function showRecipeInfo(id, name, description) {
-        alert(`${name}\n\nDescription: ${description || 'No description available'}`);
+    function extractIngredients(description) {
+        if (!description) return 'No ingredient information available.';
+        const marker = /ingredients[:\-\s]*/i;
+        const parts = description.split(marker);
+        if (parts.length > 1 && parts[1].trim()) return parts[1].trim();
+        return description;
+    }
+
+    function showRecipeInfo(name, description, img) {
+        $('#recipeModalTitle').text(name || 'Recipe');
+        $('#recipeModalDesc').text(description || 'No description available.');
+        $('#recipeModalIngredients').text(extractIngredients(description));
+        $('#recipeModalImg')
+            .attr('src', img || '/img/placeholder.png')
+            .on('error', function() { this.src = '/img/placeholder.png'; });
+        $('#recipeDetailModal').addClass('active');
     }
 
     // Filter recipes by category and price
