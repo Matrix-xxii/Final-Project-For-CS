@@ -65,6 +65,7 @@
             align-items: center;
             gap: 0.75rem;
             flex-shrink: 0;
+            flex: 1;
         }
 
         .logo-container {
@@ -143,7 +144,8 @@
             display: flex;
             align-items: center;
             gap: 1.5rem;
-            margin-left: auto;
+            flex: 1;
+            justify-content: flex-end;
             flex-shrink: 0;
         }
 
@@ -510,16 +512,8 @@
             <!-- Category Filter -->
             <div class="filter-section">
                 <div class="filter-section-title">Category</div>
-                <div>
-                    <div class="filter-option">
-                        <button class="filter-btn-toggle" data-filter="category" data-value="General">General</button>
-                    </div>
-                    <div class="filter-option">
-                        <button class="filter-btn-toggle" data-filter="category" data-value="Currey">Currey</button>
-                    </div>
-                    <div class="filter-option">
-                        <button class="filter-btn-toggle" data-filter="category" data-value="Drink">Drink</button>
-                    </div>
+                <div id="categoryFilterContainer">
+                    <div class="text-muted">Loading categories...</div>
                 </div>
             </div>
 
@@ -560,6 +554,35 @@
 
     <script>
         $(document).ready(function() {
+            // Load categories dynamically
+            function loadCategories() {
+                $.get('/api/get_all_categories', function(res) {
+                    const categories = res.categories || [];
+                    const container = $('#categoryFilterContainer');
+                    container.empty();
+
+                    if (categories.length === 0) {
+                        container.html('<div class="text-muted">No categories available</div>');
+                        return;
+                    }
+
+                    categories.forEach(function(cat) {
+                        const categoryName = cat.category_name || cat.name || '';
+                        if (categoryName) {
+                            container.append(`
+                                <div class="filter-option">
+                                    <button class="filter-btn-toggle" data-filter="category" data-value="${categoryName}">${categoryName}</button>
+                                </div>
+                            `);
+                        }
+                    });
+                }).fail(function() {
+                    $('#categoryFilterContainer').html('<div class="text-muted">Failed to load categories</div>');
+                });
+            }
+
+            loadCategories();
+
             // Get table name from URL
             function updateTableName() {
                 const url = window.location.pathname;
@@ -588,11 +611,11 @@
                 $('#filterOverlay').removeClass('active');
             });
 
-            // Filter Button Toggle
-            $('.filter-btn-toggle').on('click', function(e) {
+            // Filter Button Toggle - use event delegation for dynamically loaded buttons
+            $(document).on('click', '.filter-btn-toggle', function(e) {
                 e.preventDefault();
                 $(this).toggleClass('active');
-                
+
                 // Get selected filters
                 const selectedFilters = {
                     categories: $('.filter-btn-toggle[data-filter="category"].active').map(function() {
@@ -608,33 +631,24 @@
                 console.log('Applied Filters:', selectedFilters);
             });
 
-            // Search Functionality
+            // Search Functionality - on typing
+            $('#searchInput').on('input', function() {
+                const searchTerm = $(this).val().trim();
+                $(document).trigger('searchSubmitted', [searchTerm]);
+                console.log('Search:', searchTerm);
+            });
+
+            // Also handle form submit for Enter key
             $('#searchForm').on('submit', function(e) {
                 e.preventDefault();
                 const searchTerm = $('#searchInput').val().trim();
-                if (searchTerm) {
-                    $(document).trigger('searchSubmitted', [searchTerm]);
-                    console.log('Search:', searchTerm);
-                }
+                $(document).trigger('searchSubmitted', [searchTerm]);
             });
 
             // ── Order History Panel ──────────────────────────────────────────
-            // #region agent log
-            var _dbgEp = 'http://127.0.0.1:7765/ingest/e5643bba-007a-4618-b444-3d5149c3d1ba';
-            function _dbgLog(hyp, loc, msg, data) {
-                fetch(_dbgEp, {method:'POST', headers:{'Content-Type':'application/json','X-Debug-Session-Id':'cff0a8'},
-                    body: JSON.stringify({sessionId:'cff0a8', hypothesisId:hyp, location:loc, message:msg, data:data, timestamp:Date.now()})}).catch(function(){});
-            }
-            // H-A: verify click handler is bound at DOM ready
-            _dbgLog('H-A', '_LayoutWebsite.cshtml:setup', 'history JS block reached', {orderHistoryLinkExists: !!document.getElementById('orderHistoryLink')});
-            // #endregion
 
             function getTableNumber() {
                 var m = window.location.pathname.match(/\/table\/(\d+)/i);
-                // #region agent log
-                _dbgLog('H-B', '_LayoutWebsite.cshtml:getTableNumber', 'getTableNumber called', {pathname: window.location.pathname, matched: !!m, tableNumber: m ? parseInt(m[1]) : 0});
-                console.log('[DBG H-F] getTableNumber | path=' + window.location.pathname + ' | matched=' + !!m + ' | tn=' + (m ? parseInt(m[1]) : 0));
-                // #endregion
                 return m ? parseInt(m[1]) : 0;
             }
 
@@ -650,9 +664,6 @@
             }
 
             function openHistoryPanel() {
-                // #region agent log
-                _dbgLog('H-A','_LayoutWebsite.cshtml:openHistoryPanel','openHistoryPanel called',{panelExists:!!document.getElementById('historyPanel'), overlayExists:!!document.getElementById('historyOverlay')});
-                // #endregion
                 $('#historyOverlay').addClass('active');
                 $('#historyPanel').addClass('active');
                 $('#historyLoading').show();
@@ -667,13 +678,7 @@
                     return;
                 }
 
-                // #region agent log
-                _dbgLog('H-C','_LayoutWebsite.cshtml:ajax','firing AJAX',{url:'/api/table/order_history', tableNumber:tn});
-                // #endregion
                 $.getJSON('/api/table/order_history', { tableNumber: tn }, function(data) {
-                    // #region agent log
-                    _dbgLog('H-C H-E','_LayoutWebsite.cshtml:ajax-success','AJAX success',{count: data ? data.length : 0, firstItem: data && data.length > 0 ? data[0] : null});
-                    // #endregion
                     $('#historyLoading').hide();
                     if (!data || data.length === 0) {
                         $('#historyEmpty').show();
@@ -703,9 +708,6 @@
                     $('#historyGrandTotal').text(grandTotal.toLocaleString() + ' MMK');
                     $('#historyFooter').show();
                 }).fail(function(xhr) {
-                    // #region agent log
-                    _dbgLog('H-C H-D','_LayoutWebsite.cshtml:ajax-fail','AJAX failed',{status:xhr.status, statusText:xhr.statusText, responseText: xhr.responseText ? xhr.responseText.substring(0,200) : null});
-                    // #endregion
                     $('#historyLoading').hide();
                     $('#historyContent').html('<div class="text-danger text-center py-3">Failed to load history.</div>').show();
                 });
@@ -713,9 +715,6 @@
 
             $('#orderHistoryLink').on('click', function(e) {
                 e.preventDefault();
-                // #region agent log
-                _dbgLog('H-A','_LayoutWebsite.cshtml:click','orderHistoryLink clicked',{href:$(this).attr('href')});
-                // #endregion
                 openHistoryPanel();
             });
 

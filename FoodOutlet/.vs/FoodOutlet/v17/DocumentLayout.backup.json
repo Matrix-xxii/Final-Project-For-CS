@@ -3,6 +3,14 @@
   "WorkspaceRootPath": "D:\\MLM\\Final\\Final-Project-For-CS\\FoodOutlet\\",
   "Documents": [
     {
+      "AbsoluteMoniker": "D:0:0:{903DC50A-2458-43AD-A4BA-3D83D0B24934}|FoodOutlet.csproj|d:\\mlm\\final\\final-project-for-cs\\foodoutlet\\views\\shared\\_layout.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{903DC50A-2458-43AD-A4BA-3D83D0B24934}|FoodOutlet.csproj|solutionrelative:views\\shared\\_layout.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{903DC50A-2458-43AD-A4BA-3D83D0B24934}|FoodOutlet.csproj|d:\\mlm\\final\\final-project-for-cs\\foodoutlet\\views\\shared\\_layoutwebsite.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{903DC50A-2458-43AD-A4BA-3D83D0B24934}|FoodOutlet.csproj|solutionrelative:views\\shared\\_layoutwebsite.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
       "AbsoluteMoniker": "D:0:0:{903DC50A-2458-43AD-A4BA-3D83D0B24934}|FoodOutlet.csproj|d:\\mlm\\final\\final-project-for-cs\\foodoutlet\\views\\account\\login.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}",
       "RelativeMoniker": "D:0:0:{903DC50A-2458-43AD-A4BA-3D83D0B24934}|FoodOutlet.csproj|solutionrelative:views\\account\\login.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}"
     },
@@ -11,12 +19,12 @@
       "RelativeMoniker": "D:0:0:{903DC50A-2458-43AD-A4BA-3D83D0B24934}|FoodOutlet.csproj|solutionrelative:views\\entry\\table.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{903DC50A-2458-43AD-A4BA-3D83D0B24934}|FoodOutlet.csproj|d:\\mlm\\final\\final-project-for-cs\\foodoutlet\\views\\home\\index.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}",
-      "RelativeMoniker": "D:0:0:{903DC50A-2458-43AD-A4BA-3D83D0B24934}|FoodOutlet.csproj|solutionrelative:views\\home\\index.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}"
-    },
-    {
       "AbsoluteMoniker": "D:0:0:{903DC50A-2458-43AD-A4BA-3D83D0B24934}|FoodOutlet.csproj|d:\\mlm\\final\\final-project-for-cs\\foodoutlet\\views\\entry\\cart.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}",
       "RelativeMoniker": "D:0:0:{903DC50A-2458-43AD-A4BA-3D83D0B24934}|FoodOutlet.csproj|solutionrelative:views\\entry\\cart.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{903DC50A-2458-43AD-A4BA-3D83D0B24934}|FoodOutlet.csproj|d:\\mlm\\final\\final-project-for-cs\\foodoutlet\\views\\home\\index.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{903DC50A-2458-43AD-A4BA-3D83D0B24934}|FoodOutlet.csproj|solutionrelative:views\\home\\index.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{903DC50A-2458-43AD-A4BA-3D83D0B24934}|FoodOutlet.csproj|d:\\mlm\\final\\final-project-for-cs\\foodoutlet\\views\\entry\\registration.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}",
@@ -25,10 +33,6 @@
     {
       "AbsoluteMoniker": "D:0:0:{903DC50A-2458-43AD-A4BA-3D83D0B24934}|FoodOutlet.csproj|d:\\mlm\\final\\final-project-for-cs\\foodoutlet\\controllers\\accountcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{903DC50A-2458-43AD-A4BA-3D83D0B24934}|FoodOutlet.csproj|solutionrelative:controllers\\accountcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{903DC50A-2458-43AD-A4BA-3D83D0B24934}|FoodOutlet.csproj|d:\\mlm\\final\\final-project-for-cs\\foodoutlet\\views\\shared\\_layoutwebsite.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}",
-      "RelativeMoniker": "D:0:0:{903DC50A-2458-43AD-A4BA-3D83D0B24934}|FoodOutlet.csproj|solutionrelative:views\\shared\\_layoutwebsite.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{903DC50A-2458-43AD-A4BA-3D83D0B24934}|FoodOutlet.csproj|d:\\mlm\\final\\final-project-for-cs\\foodoutlet\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
@@ -54,37 +58,50 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 1,
+          "SelectedChildIndex": 0,
           "Children": [
             {
               "$type": "Document",
-              "DocumentIndex": 1,
+              "DocumentIndex": 0,
+              "Title": "_Layout.cshtml",
+              "DocumentMoniker": "D:\\MLM\\Final\\Final-Project-For-CS\\FoodOutlet\\Views\\Shared\\_Layout.cshtml",
+              "RelativeDocumentMoniker": "Views\\Shared\\_Layout.cshtml",
+              "ToolTip": "D:\\MLM\\Final\\Final-Project-For-CS\\FoodOutlet\\Views\\Shared\\_Layout.cshtml",
+              "RelativeToolTip": "Views\\Shared\\_Layout.cshtml",
+              "ViewState": "AgIAAOEAAAAAAAAAAIAwwO4AAAAQAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2026-05-05T13:22:47.82Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
               "Title": "Table.cshtml",
               "DocumentMoniker": "D:\\MLM\\Final\\Final-Project-For-CS\\FoodOutlet\\Views\\Entry\\Table.cshtml",
               "RelativeDocumentMoniker": "Views\\Entry\\Table.cshtml",
               "ToolTip": "D:\\MLM\\Final\\Final-Project-For-CS\\FoodOutlet\\Views\\Entry\\Table.cshtml",
               "RelativeToolTip": "Views\\Entry\\Table.cshtml",
-              "ViewState": "AgIAABIBAAAAAAAAAAAAAGUBAAAAAAAAAAAAAA==",
+              "ViewState": "AgIAAPsAAAAAAAAAAAAAAA4BAAAhAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
               "WhenOpened": "2026-05-05T04:47:49.023Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 0,
+              "DocumentIndex": 2,
               "Title": "Login.cshtml",
               "DocumentMoniker": "D:\\MLM\\Final\\Final-Project-For-CS\\FoodOutlet\\Views\\Account\\Login.cshtml",
               "RelativeDocumentMoniker": "Views\\Account\\Login.cshtml",
               "ToolTip": "D:\\MLM\\Final\\Final-Project-For-CS\\FoodOutlet\\Views\\Account\\Login.cshtml",
               "RelativeToolTip": "Views\\Account\\Login.cshtml",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAABIAAABDAAAAAAAAAA==",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAwAAABPAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
               "WhenOpened": "2026-05-05T04:46:32.602Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 2,
+              "DocumentIndex": 5,
               "Title": "Index.cshtml",
               "DocumentMoniker": "D:\\MLM\\Final\\Final-Project-For-CS\\FoodOutlet\\Views\\Home\\Index.cshtml",
               "RelativeDocumentMoniker": "Views\\Home\\Index.cshtml",
@@ -97,20 +114,20 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 3,
+              "DocumentIndex": 4,
               "Title": "Cart.cshtml",
               "DocumentMoniker": "D:\\MLM\\Final\\Final-Project-For-CS\\FoodOutlet\\Views\\Entry\\Cart.cshtml",
               "RelativeDocumentMoniker": "Views\\Entry\\Cart.cshtml",
               "ToolTip": "D:\\MLM\\Final\\Final-Project-For-CS\\FoodOutlet\\Views\\Entry\\Cart.cshtml",
               "RelativeToolTip": "Views\\Entry\\Cart.cshtml",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAgAAAAIAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
               "WhenOpened": "2026-05-05T04:17:19.696Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 5,
+              "DocumentIndex": 7,
               "Title": "AccountController.cs",
               "DocumentMoniker": "D:\\MLM\\Final\\Final-Project-For-CS\\FoodOutlet\\Controllers\\AccountController.cs",
               "RelativeDocumentMoniker": "Controllers\\AccountController.cs",
@@ -123,7 +140,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 9,
+              "DocumentIndex": 10,
               "Title": "HtmlHelpers.cs",
               "DocumentMoniker": "D:\\MLM\\Final\\Final-Project-For-CS\\FoodOutlet\\AppCode\\HtmlHelpers.cs",
               "RelativeDocumentMoniker": "AppCode\\HtmlHelpers.cs",
@@ -136,20 +153,20 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 6,
+              "DocumentIndex": 1,
               "Title": "_LayoutWebsite.cshtml",
               "DocumentMoniker": "D:\\MLM\\Final\\Final-Project-For-CS\\FoodOutlet\\Views\\Shared\\_LayoutWebsite.cshtml",
               "RelativeDocumentMoniker": "Views\\Shared\\_LayoutWebsite.cshtml",
               "ToolTip": "D:\\MLM\\Final\\Final-Project-For-CS\\FoodOutlet\\Views\\Shared\\_LayoutWebsite.cshtml",
               "RelativeToolTip": "Views\\Shared\\_LayoutWebsite.cshtml",
-              "ViewState": "AgIAANMBAAAAAAAAAADwv9UBAAAUAAAAAAAAAA==",
+              "ViewState": "AgIAALgBAAAAAAAAAIAwwN8AAAA1AAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
               "WhenOpened": "2026-03-27T08:39:59.737Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 7,
+              "DocumentIndex": 8,
               "Title": "Program.cs",
               "DocumentMoniker": "D:\\MLM\\Final\\Final-Project-For-CS\\FoodOutlet\\Program.cs",
               "RelativeDocumentMoniker": "Program.cs",
@@ -162,7 +179,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 8,
+              "DocumentIndex": 9,
               "Title": "RecipeList.cshtml",
               "DocumentMoniker": "D:\\MLM\\Final\\Final-Project-For-CS\\FoodOutlet\\Views\\Entry\\RecipeList.cshtml",
               "RelativeDocumentMoniker": "Views\\Entry\\RecipeList.cshtml",
@@ -175,7 +192,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 10,
+              "DocumentIndex": 11,
               "Title": "Staff.cs",
               "DocumentMoniker": "D:\\MLM\\Final\\Final-Project-For-CS\\FoodOutlet\\AppCode\\Staff.cs",
               "RelativeDocumentMoniker": "AppCode\\Staff.cs",
@@ -188,7 +205,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 4,
+              "DocumentIndex": 6,
               "Title": "Registration.cshtml",
               "DocumentMoniker": "D:\\MLM\\Final\\Final-Project-For-CS\\FoodOutlet\\Views\\Entry\\Registration.cshtml",
               "RelativeDocumentMoniker": "Views\\Entry\\Registration.cshtml",

@@ -314,6 +314,13 @@ namespace FoodOutlet.Controllers
                 });
             }
 
+            var latestItem = converted
+                .OrderByDescending(x => (int)x.id)
+                .FirstOrDefault();
+
+            ViewData["LatestItemName"] = latestItem == null ? "New Items" : (string)latestItem.recipe_name;
+            ViewData["LatestItemImage"] = latestItem == null ? "/img/sticky-rice.jpg" : (string)latestItem.recipe_img;
+            ViewData["LatestItemDesc"] = latestItem == null ? "No item available" : (string)latestItem.description;
             ViewData["TableNumber"] = tableNumber;
             return View("~/Views/Entry/Table.cshtml", converted);
         }
@@ -586,20 +593,7 @@ namespace FoodOutlet.Controllers
         [HttpGet("/api/table/order_history")]
         public IActionResult TableOrderHistory(int tableNumber)
         {
-            // #region agent log
-            var _logPath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "debug-cff0a8.log");
-            void WriteLog(string hyp, string msg, object data) {
-                var entry = System.Text.Json.JsonSerializer.Serialize(new { sessionId="cff0a8", hypothesisId=hyp, location="EntryController.cs:TableOrderHistory", message=msg, data, timestamp=DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() });
-                System.IO.File.AppendAllText(_logPath, entry + "\n");
-            }
-            WriteLog("H-F H-G", "API endpoint hit", new { tableNumber });
-            // #endregion
-
             var history = _staff.GetTableOrderHistory(tableNumber);
-
-            // #region agent log
-            WriteLog("H-G", "GetTableOrderHistory returned", new { count = history.Count, tableNumber });
-            // #endregion
 
             var result = history.Select(o => new
             {

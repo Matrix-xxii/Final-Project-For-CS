@@ -1312,14 +1312,6 @@ ORDER BY r.recipe_name, r.id";
         /// </summary>
         public List<dynamic> GetTableOrderHistory(int tableNumber)
         {
-            // #region agent log
-            var _logPath2 = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "debug-cff0a8.log");
-            void WriteLog2(string hyp, string msg, object data) {
-                var entry = System.Text.Json.JsonSerializer.Serialize(new { sessionId="cff0a8", hypothesisId=hyp, location="Staff.cs:GetTableOrderHistory", message=msg, data, timestamp=DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() });
-                System.IO.File.AppendAllText(_logPath2, entry + "\n");
-            }
-            // #endregion
-
             var list = new List<dynamic>();
             try
             {
@@ -1327,26 +1319,6 @@ ORDER BY r.recipe_name, r.id";
                 {
                     conn.Open();
                     EnsureOrderDetailOrderId(conn);
-
-                    // #region agent log — check what table_name values exist for this tableNumber
-                    string? actualTableName = null;
-                    bool tableNumColExists = false;
-                    try {
-                        using var chk = new MySqlCommand("SELECT table_name FROM table_lists WHERE table_number = @tn LIMIT 1", conn);
-                        chk.Parameters.AddWithValue("@tn", tableNumber);
-                        actualTableName = chk.ExecuteScalar()?.ToString();
-                        tableNumColExists = true;
-                    } catch { tableNumColExists = false; }
-                    // fallback: try by name
-                    string? nameMatch = null;
-                    try {
-                        using var chk2 = new MySqlCommand("SELECT table_name FROM table_lists WHERE table_name IN (@a,@b) LIMIT 1", conn);
-                        chk2.Parameters.AddWithValue("@a", tableNumber.ToString());
-                        chk2.Parameters.AddWithValue("@b", $"Table {tableNumber}");
-                        nameMatch = chk2.ExecuteScalar()?.ToString();
-                    } catch { }
-                    WriteLog2("H-G", "table_lists lookup", new { tableNumber, tableNumColExists, actualTableName, nameMatch });
-                    // #endregion
 
                     const string sql = @"
                         SELECT
@@ -1392,16 +1364,10 @@ ORDER BY r.recipe_name, r.id";
                             }
                         }
                     }
-                    // #region agent log
-                    WriteLog2("H-G", "query complete", new { rowsReturned = list.Count });
-                    // #endregion
                 }
             }
             catch (Exception ex)
             {
-                // #region agent log
-                WriteLog2("H-G", "EXCEPTION in GetTableOrderHistory", new { error = ex.Message, type = ex.GetType().Name });
-                // #endregion
                 Console.WriteLine("GetTableOrderHistory error: " + ex.Message);
             }
             return list;
