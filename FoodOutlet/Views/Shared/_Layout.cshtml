@@ -312,8 +312,14 @@
                                     </li>
                                     <li class="nav-item">
                                         <a asp-controller="Entry" asp-action="StaffResignRecords" class="nav-link nav-link-treeview">
-                                            <i class="fas fa-user-times"></i>
-                                            <p>Staff Resign Records</p>
+                                            <i class="fas fa-envelope-open-text"></i>
+                                            <p>Resign Messages</p>
+                                        </a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a asp-controller="Entry" asp-action="ResignApproval" class="nav-link nav-link-treeview">
+                                            <i class="fas fa-user-check"></i>
+                                            <p>Resign Approval</p>
                                         </a>
                                     </li>
                                 </ul>
@@ -354,9 +360,16 @@
                                     <p>Table Registration</p>
                                 </a>
                             </li>
+
+                            <li class="nav-item">
+                                <a asp-controller="Entry" asp-action="OrderHistory" class="nav-link nav-link-treeview">
+                                    <i class="nav-icon fas fa-history"></i>
+                                    <p>Order History</p>
+                                </a>
+                            </li>
                         }
 
-                        @if (loggedRole == "Admin" || loggedRole == "Chief")
+                        @if (loggedRole == "Admin" || loggedRole == "Chef")
                         {
                             <!-- Inventory — Admin and Chef -->
                             <li class="nav-item">
@@ -378,7 +391,7 @@
                                             <i class="nav-icon fas fa-cash-register"></i>
                                             <p>Orders</p>
                                             break;
-                                        case "Chief":
+                                        case "Chef":
                                             <i class="nav-icon fas fa-utensils"></i>
                                             <p>Cooking Queue</p>
                                             break;

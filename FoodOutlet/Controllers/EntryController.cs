@@ -1,9 +1,10 @@
-﻿using FoodOutlet.AppCode;
+using FoodOutlet.AppCode;
 using FoodOutlet.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using MySql.Data.MySqlClient;
 using QRCoder;
+using System.Text.Json;
 
 namespace FoodOutlet.Controllers
 {
@@ -13,19 +14,43 @@ namespace FoodOutlet.Controllers
         private readonly AppCode.Staff _staff;
         private readonly IWebHostEnvironment _env;
         private readonly IDbConnectionFactory _connectionFactory;
-        private readonly ImageProcessingService _imageService; // ← ADD THIS
+        private readonly ImageProcessingService _imageService; // â† ADD THIS
 
         public EntryController(AppCode.Staff staff, IWebHostEnvironment env, IDbConnectionFactory connectionFactory, ImageProcessingService imageService)
         {
             _staff = staff;
             _env = env;
             _connectionFactory = connectionFactory;
-            _imageService = imageService; // ← ADD THIS
+            _imageService = imageService; // â† ADD THIS
+        }
+
+        private void DebugLog(string runId, string hypothesisId, string location, string message, object data)
+        {
+            try
+            {
+                var payload = JsonSerializer.Serialize(new
+                {
+                    sessionId = "3b1609",
+                    runId,
+                    hypothesisId,
+                    location,
+                    message,
+                    data,
+                    timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
+                });
+                System.IO.File.AppendAllText("debug-3b1609.log", payload + Environment.NewLine);
+            }
+            catch
+            {
+            }
         }
 
         #region Existing Views
         public IActionResult Inventory()
         {
+            // #region agent log
+            DebugLog("post-fix", "H5", "Controllers/EntryController.cs:Inventory", "inventory page opened", new { role = User.FindFirst("RoleName")?.Value ?? "" });
+            // #endregion
             return View();
         }
         public IActionResult Role()
@@ -51,6 +76,16 @@ namespace FoodOutlet.Controllers
         }
 
         public IActionResult StaffResignRecords()
+        {
+            return View();
+        }
+
+        public IActionResult ResignApproval()
+        {
+            return View();
+        }
+
+        public IActionResult OrderHistory()
         {
             return View();
         }
@@ -237,6 +272,7 @@ namespace FoodOutlet.Controllers
         }
 
         // GET: /table/{tableNumber} - Customer Menu Page
+        [AllowAnonymous]
         [HttpGet("table/{tableNumber}")]
         public IActionResult Table(int tableNumber)
         {
@@ -308,6 +344,7 @@ namespace FoodOutlet.Controllers
                     category_id = r.category_id,
                     recipe_img = img,
                     description = r.description,
+                    ingredients = r.ingredients,
                     price = r.price,
                     category_name = r.category_name,
                     stock_qty = stock
@@ -326,6 +363,7 @@ namespace FoodOutlet.Controllers
         }
 
         // GET: /table/{tableNumber}/cart - Customer Cart Page
+        [AllowAnonymous]
         [HttpGet("table/{tableNumber}/cart")]
         public IActionResult Cart(int tableNumber)
         {
@@ -362,6 +400,7 @@ namespace FoodOutlet.Controllers
             return new Dictionary<string, dynamic> { { "staff", _staff.GetAllStaffs() } };
         }
 
+        [AllowAnonymous]
         [HttpGet("api/get_all_categories")]
         public Dictionary<string, dynamic> GetAllCategories()
         {
@@ -411,6 +450,36 @@ namespace FoodOutlet.Controllers
         public Dictionary<string, dynamic> GetResignedStaff()
         {
             return new Dictionary<string, dynamic> { { "records", _staff.GetResignRecords() } };
+        }
+
+        [HttpGet("api/admin/get_resign_approvals")]
+        public Dictionary<string, dynamic> GetResignApprovals()
+        {
+            // #region agent log
+            DebugLog("initial", "H1", "Controllers/EntryController.cs:GetResignApprovals", "endpoint hit", new { route = "/api/admin/get_resign_approvals" });
+            // #endregion
+            var records = _staff.GetResignApprovals();
+            // #region agent log
+            DebugLog("initial", "H3", "Controllers/EntryController.cs:GetResignApprovals", "records loaded", new { count = records.Count });
+            // #endregion
+            return new Dictionary<string, dynamic> { { "records", records } };
+        }
+
+        [HttpPost("api/admin/set_resign_approval")]
+        public Models.Message SetResignApproval([FromBody] ResignApprovalRequest payload)
+        {
+            // #region agent log
+            DebugLog("initial", "H2", "Controllers/EntryController.cs:SetResignApproval", "request received", new
+            {
+                resign_id = payload?.resign_id ?? 0,
+                decision = payload?.decision ?? ""
+            });
+            // #endregion
+            var result = _staff.SetResignApproval(payload?.resign_id ?? 0, payload?.decision ?? "");
+            // #region agent log
+            DebugLog("initial", "H2", "Controllers/EntryController.cs:SetResignApproval", "request completed", new { message = result.message });
+            // #endregion
+            return result;
         }
 
         [HttpGet("api/get_all_inventories")]
@@ -472,6 +541,7 @@ namespace FoodOutlet.Controllers
             return _staff.DeleteInventory(id);
         }
 
+        [AllowAnonymous]
         [HttpPost("api/create_order")]
         public Models.Message CreateOrder([FromBody] Models.CreateOrderRequest request)
         {
@@ -590,6 +660,7 @@ namespace FoodOutlet.Controllers
         /// Returns all active orders for a table (status: Pending/Approved/Ready/Served).
         /// Called by the customer-facing "Order History" panel via AJAX.
         /// </summary>
+        [AllowAnonymous]
         [HttpGet("/api/table/order_history")]
         public IActionResult TableOrderHistory(int tableNumber)
         {

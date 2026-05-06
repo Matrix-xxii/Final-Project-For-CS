@@ -1,0 +1,73 @@
+@{
+    ViewData["Title"] = "Order History";
+}
+
+<div class="content-header">
+    <div class="container-fluid">
+        <h1 class="m-0">Order History</h1>
+    </div>
+</div>
+
+<section class="content">
+    <div class="container-fluid">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h3 class="card-title font-weight-bold">All Orders</h3>
+                <button class="btn btn-sm btn-outline-primary" onclick="loadOrderHistory()"><i class="fas fa-sync"></i> Refresh</button>
+            </div>
+            <div class="card-body">
+                <table id="orderHistoryTable" class="table table-bordered table-striped">
+                    <thead>
+                        <tr>
+                            <th>No.</th>
+                            <th>Order ID</th>
+                            <th>Table</th>
+                            <th>Status</th>
+                            <th>Items</th>
+                            <th>Total</th>
+                            <th>Created At</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
+
+@section Scripts {
+<script>
+    $(document).ready(function () {
+        loadOrderHistory();
+    });
+
+    function loadOrderHistory() {
+        $.get('/api/admin/order_history', function (res) {
+            const orders = (res && res.orders) ? res.orders : [];
+            let html = '';
+
+            orders.forEach(function (o, idx) {
+                const dt = o.created_at ? new Date(o.created_at).toLocaleString() : '-';
+                const total = parseFloat(o.order_total || 0).toLocaleString();
+                html += `<tr>
+                    <td>${idx + 1}</td>
+                    <td>${o.order_id}</td>
+                    <td>${o.table_label || '-'}</td>
+                    <td>${o.status || '-'}</td>
+                    <td>${o.items_summary || '-'}</td>
+                    <td>${total} MMK</td>
+                    <td>${dt}</td>
+                </tr>`;
+            });
+
+            if (!html) {
+                html = '<tr><td colspan="7" class="text-center text-muted">No order history found.</td></tr>';
+            }
+
+            $('#orderHistoryTable tbody').html(html);
+        }).fail(function () {
+            alert('Failed to load order history');
+        });
+    }
+</script>
+}

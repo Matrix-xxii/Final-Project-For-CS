@@ -32,7 +32,6 @@
                         <div class="col-md-9">
                             <select id="ddlCategory" class="form-control">
                                 <option value="">-- Select Category --</option>
-                                
                             </select>
                         </div>
                     </div>
@@ -77,6 +76,13 @@
                     </div>
 
                     <div class="form-group row">
+                        <label class="col-md-3 col-form-label text-right form-label-custom">Ingredients</label>
+                        <div class="col-md-9">
+                            <textarea id="txtIngredients" class="form-control" rows="3" placeholder="Enter ingredients">@(Model?.ingredients ?? "")</textarea>
+                        </div>
+                    </div>
+
+                    <div class="form-group row">
                         <div class="col-md-9 offset-md-3 text-right">
                             @if (isEdit)
                             {
@@ -103,45 +109,35 @@
 @section Scripts {
 <script>
     let uploadedImageUrl = "";
-    // Mirror Registration.cshtml logic structure exactly:
-    // 1) call loader on ready
-    // 2) loader uses $.ajax GET, empties select, appends items via $.each, and sets selection via inline Razor when editing
-    // 3) file change handler uploads to /api/upload_recipe_image
-    // 4) save builds object, POSTs to /api/set_recipe, checks res.message, alerts, clears and redirects
+
     $(document).ready(function () {
         loadCategories();
     });
 
     function loadCategories() {
-
         $.ajax({
             type: "GET",
             url: "/api/get_all_categories",
             success: function (data) {
-
                 $("#ddlCategory").empty();
                 $("#ddlCategory").append('<option value="">-- Select Category --</option>');
 
                 $.each(data.categories, function (i, cat) {
-
                     $("#ddlCategory").append(
                         '<option value="' + cat.id + '">' +
                             cat.category_name +
                         '</option>'
                     );
-
                 });
-                // if editing, pick existing category (inline Razor mirrors Registration pattern)
+
                 @if(Model != null && Model.category_id > 0){
                     <text>$("#ddlCategory").val("@Model.category_id");</text>
                 }
             },
-
             error: function () {
                 alert("Cannot load categories");
             }
         });
-
     }
 
     $('#imgFile').on('change', function () {
@@ -175,22 +171,24 @@
         });
     });
 
-    // saveRecipe mirrors saveStaff's structure and behavior
     function saveRecipe() {
-
         var obj = {
             id: parseInt($('#hdnId').val()) || 0,
             recipe_name: $('#txtRecipeName').val().trim(),
             category_id: parseInt($('#ddlCategory').val()) || 0,
             recipe_img: uploadedImageUrl || $('#imgPreview').attr('src') || "",
             description: $('#txtDescription').val().trim(),
+            ingredients: $('#txtIngredients').val().trim(),
             price: parseFloat($('#txtPrice').val()) || 0
         };
 
-        console.log(obj);
+        // #region agent log
+        fetch('http://127.0.0.1:7765/ingest/e5643bba-007a-4618-b444-3d5149c3d1ba',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'cff0a8'},body:JSON.stringify({sessionId:'cff0a8',runId:'recipe-ingredients-before-save',hypothesisId:'H1',location:'Views/Entry/Recipe.cshtml:saveRecipe',message:'payload before save recipe',data:{id:obj.id,recipe_name:obj.recipe_name,ingredients_len:(obj.ingredients||'').length},timestamp:Date.now()})}).catch(()=>{});
+        // #endregion
 
         if (!obj.recipe_name) { alert('Recipe name required'); return; }
         if (!obj.price || obj.price <= 0) { alert('Invalid price'); return; }
+        if (!obj.ingredients) { alert('Ingredients required'); return; }
 
         $.ajax({
             type: "POST",
@@ -199,7 +197,6 @@
             contentType: "application/json; charset=utf-8",
             dataType: "json"
         }).done(function (res) {
-
             if (res.message == "Success" || res.message == "Updated") {
                 alert("Saved");
                 clearForm();
@@ -207,20 +204,18 @@
             } else {
                 alert(res.message);
             }
-
         }).fail(function () {
             alert('Save failed');
         });
     }
 
-    // clearForm follows the same semantics as Registration.clearForm
     function clearForm() {
         $('#hdnId').val(0);
         $('#txtRecipeName').val('');
         $('#ddlCategory').val('');
         $('#txtPrice').val('');
         $('#txtDescription').val('');
-        // reset preview and uploaded state
+        $('#txtIngredients').val('');
         $('#imgPreview').attr('src', '');
         uploadedImageUrl = '';
     }

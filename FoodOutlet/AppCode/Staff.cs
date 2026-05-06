@@ -1,4 +1,6 @@
-﻿using FoodOutlet.Models;
+using System.IO;
+using System.Text.Json;
+using FoodOutlet.Models;
 using MySql.Data.MySqlClient;
 
 namespace FoodOutlet.AppCode
@@ -115,14 +117,42 @@ namespace FoodOutlet.AppCode
             return list;
         }
 
+        private static bool _recipeIngredientsMigrated = false;
+        private static readonly object _recipeMigrateLock = new();
+
+        private void EnsureRecipeIngredientsColumn(MySqlConnection conn)
+        {
+            if (_recipeIngredientsMigrated) return;
+            lock (_recipeMigrateLock)
+            {
+                if (_recipeIngredientsMigrated) return;
+                try
+                {
+                    using var check = new MySqlCommand(
+                        "SELECT COUNT(*) FROM information_schema.columns " +
+                        "WHERE table_schema = DATABASE() AND table_name = 'recipes' AND column_name = 'ingredients'", conn);
+                    if (Convert.ToInt32(check.ExecuteScalar()) == 0)
+                    {
+                        using var alter = new MySqlCommand("ALTER TABLE recipes ADD COLUMN ingredients TEXT NULL", conn);
+                        alter.ExecuteNonQuery();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("EnsureRecipeIngredientsColumn error: " + ex.Message);
+                }
+                _recipeIngredientsMigrated = true;
+            }
+        }
         public List<dynamic> GetAllRecipes()
         {
             var list = new List<dynamic>();
             using (var conn = _connectionFactory.CreateConnection())
             {
                 conn.Open();
+                EnsureRecipeIngredientsColumn(conn);
                 string sql = @"
-            SELECT r.id, r.recipe_name, r.category_id, r.recipe_img, r.description, r.price, c.category_name
+            SELECT r.id, r.recipe_name, r.category_id, r.recipe_img, r.description, r.ingredients, r.price, c.category_name
             FROM recipes r
             LEFT JOIN categories c ON r.category_id = c.id
             ORDER BY r.id";
@@ -141,6 +171,7 @@ namespace FoodOutlet.AppCode
                             category_id = rdr["category_id"] == DBNull.Value ? 0 : Convert.ToInt32(rdr["category_id"]),
                             recipe_img = imagePath,
                             description = rdr["description"]?.ToString() ?? "",
+                            ingredients = rdr["ingredients"]?.ToString() ?? "",
                             price = rdr["price"] == DBNull.Value ? 0 : Convert.ToDecimal(rdr["price"]),
                             category_name = rdr["category_name"]?.ToString() ?? ""
                         });
@@ -202,11 +233,21 @@ ORDER BY r.recipe_name, r.id";
             using (var conn = _connectionFactory.CreateConnection())
             {
                 conn.Open();
+                EnsureResignApprovalColumn(conn);
+                // #region agent log
+                try
+                {
+                    var payload = "{\"sessionId\":\"3b1609\",\"runId\":\"pre-fix\",\"hypothesisId\":\"H5\",\"location\":\"AppCode/Staff.cs:GetResignRecords\",\"message\":\"ensured approval_status column before resign records query\",\"data\":{},\"timestamp\":" + DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() + "}";
+                    File.AppendAllText("debug-3b1609.log", payload + Environment.NewLine);
+                }
+                catch { }
+                // #endregion
 
                 string sql = @"
                     SELECT r.id, r.registration_name AS name, r.email, r.phone_no, r.address,
                            r.photo, ro.role_name,
-                           rs.reason, rs.resign_at AS resign
+                           rs.reason, rs.resign_at AS resign,
+                           COALESCE(rs.approval_status, 'Pending') AS approval_status
                     FROM registrations r
                     INNER JOIN resigns rs ON r.id = rs.registration_id
                     JOIN roles ro ON ro.id = r.role_id
@@ -227,10 +268,19 @@ ORDER BY r.recipe_name, r.id";
                             photo     = rdr["photo"]?.ToString() ?? "",
                             role_name = rdr["role_name"]?.ToString() ?? "",
                             reason    = rdr["reason"]?.ToString() ?? "",
-                            resign    = rdr["resign"] == DBNull.Value ? (DateTime?)null : Convert.ToDateTime(rdr["resign"])
+                            resign    = rdr["resign"] == DBNull.Value ? (DateTime?)null : Convert.ToDateTime(rdr["resign"]),
+                            approval_status = rdr["approval_status"]?.ToString() ?? "Pending"
                         });
                     }
                 }
+                // #region agent log
+                try
+                {
+                    var payload = "{\"sessionId\":\"3b1609\",\"runId\":\"pre-fix\",\"hypothesisId\":\"H5\",\"location\":\"AppCode/Staff.cs:GetResignRecords\",\"message\":\"resign records query completed\",\"data\":{\"count\":" + list.Count + "},\"timestamp\":" + DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() + "}";
+                    File.AppendAllText("debug-3b1609.log", payload + Environment.NewLine);
+                }
+                catch { }
+                // #endregion
             }
             return list;
         }
@@ -500,15 +550,25 @@ ORDER BY r.recipe_name, r.id";
                 using (var conn = _connectionFactory.CreateConnection())
                 {
                     conn.Open();
+                    EnsureRecipeIngredientsColumn(conn);
+                    // #region agent log
+                    try
+                    {
+                        var payload = "{\"sessionId\":\"cff0a8\",\"runId\":\"recipe-ingredients-db-save\",\"hypothesisId\":\"H2\",\"location\":\"AppCode/Staff.cs:SetRecipe\",\"message\":\"saving recipe with ingredients\",\"data\":{\"id\":" + r.id + ",\"ingredientsLen\":" + (r.ingredients ?? "").Length + "},\"timestamp\":" + DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() + "}";
+                        File.AppendAllText("debug-cff0a8.log", payload + Environment.NewLine);
+                    }
+                    catch {}
+                    // #endregion
                     if (r.id > 0)
                     {
-                        using (var cmd = new MySqlCommand("UPDATE recipes SET recipe_name=@name, category_id=@catid, recipe_img=@img, description=@desc, price=@price WHERE id=@id", conn))
+                        using (var cmd = new MySqlCommand("UPDATE recipes SET recipe_name=@name, category_id=@catid, recipe_img=@img, description=@desc, ingredients=@ingredients, price=@price WHERE id=@id", conn))
                         {
                             cmd.Parameters.AddWithValue("@id", r.id);
                             cmd.Parameters.AddWithValue("@name", r.recipe_name ?? "");
                             cmd.Parameters.AddWithValue("@catid", r.category_id);
                             cmd.Parameters.AddWithValue("@img", r.recipe_img ?? "");
                             cmd.Parameters.AddWithValue("@desc", r.description ?? "");
+                            cmd.Parameters.AddWithValue("@ingredients", r.ingredients ?? "");
                             cmd.Parameters.AddWithValue("@price", r.price);
                             cmd.ExecuteNonQuery();
                             msg.message = "Success";
@@ -516,12 +576,13 @@ ORDER BY r.recipe_name, r.id";
                     }
                     else
                     {
-                        using (var cmd = new MySqlCommand("INSERT INTO recipes (recipe_name, category_id, recipe_img, description, price, created_at) VALUES (@name, @catid, @img, @desc, @price, NOW())", conn))
+                        using (var cmd = new MySqlCommand("INSERT INTO recipes (recipe_name, category_id, recipe_img, description, ingredients, price, created_at) VALUES (@name, @catid, @img, @desc, @ingredients, @price, NOW())", conn))
                         {
                             cmd.Parameters.AddWithValue("@name", r.recipe_name ?? "");
                             cmd.Parameters.AddWithValue("@catid", r.category_id);
                             cmd.Parameters.AddWithValue("@img", r.recipe_img ?? "");
                             cmd.Parameters.AddWithValue("@desc", r.description ?? "");
+                            cmd.Parameters.AddWithValue("@ingredients", r.ingredients ?? "");
                             cmd.Parameters.AddWithValue("@price", r.price);
                             cmd.ExecuteNonQuery();
                             msg.message = "Success";
@@ -542,7 +603,8 @@ ORDER BY r.recipe_name, r.id";
             using (var conn = _connectionFactory.CreateConnection())
             {
                 conn.Open();
-                string sql = "SELECT id, recipe_name, category_id, recipe_img, description, price FROM recipes WHERE id=@id";
+                EnsureRecipeIngredientsColumn(conn);
+                string sql = "SELECT id, recipe_name, category_id, recipe_img, description, ingredients, price FROM recipes WHERE id=@id";
                 using (var cmd = new MySqlCommand(sql, conn))
                 {
                     cmd.Parameters.AddWithValue("@id", id);
@@ -557,7 +619,8 @@ ORDER BY r.recipe_name, r.id";
                                 category_id = rdr["category_id"] == DBNull.Value ? 0 : Convert.ToInt32(rdr["category_id"]),
                                 recipe_img = rdr["recipe_img"]?.ToString() ?? "",
                                 description = rdr["description"]?.ToString() ?? "",
-                                price = rdr["price"] == DBNull.Value ? 0 : Convert.ToDecimal(rdr["price"])
+                            ingredients = rdr["ingredients"]?.ToString() ?? "",
+                            price = rdr["price"] == DBNull.Value ? 0 : Convert.ToDecimal(rdr["price"])
                             };
                         }
                     }
@@ -1562,6 +1625,35 @@ ORDER BY r.recipe_name, r.id";
 
         #region Staff Self-Service
 
+        private static bool _resignApprovalMigrated = false;
+        private static readonly object _resignApprovalLock = new();
+
+        private void EnsureResignApprovalColumn(MySqlConnection conn)
+        {
+            if (_resignApprovalMigrated) return;
+            lock (_resignApprovalLock)
+            {
+                if (_resignApprovalMigrated) return;
+                try
+                {
+                    using var check = new MySqlCommand(
+                        "SELECT COUNT(*) FROM information_schema.columns " +
+                        "WHERE table_schema = DATABASE() AND table_name = 'resigns' AND column_name = 'approval_status'", conn);
+                    if (Convert.ToInt32(check.ExecuteScalar()) == 0)
+                    {
+                        using var alter = new MySqlCommand(
+                            "ALTER TABLE resigns ADD COLUMN approval_status VARCHAR(20) NOT NULL DEFAULT 'Pending'", conn);
+                        alter.ExecuteNonQuery();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("EnsureResignApprovalColumn error: " + ex.Message);
+                }
+                _resignApprovalMigrated = true;
+            }
+        }
+
         public Models.Staff? GetMyStatus(int staffId)
         {
             try
@@ -1646,8 +1738,9 @@ ORDER BY r.recipe_name, r.id";
                 using (var conn = _connectionFactory.CreateConnection())
                 {
                     conn.Open();
+                    EnsureResignApprovalColumn(conn);
                     using (var cmd = new MySqlCommand(
-                        "INSERT INTO resigns (registration_id, reason, resign_at) VALUES (@id, @reason, NOW())", conn))
+                        "INSERT INTO resigns (registration_id, reason, resign_at, approval_status) VALUES (@id, @reason, NOW(), 'Pending')", conn))
                     {
                         cmd.Parameters.AddWithValue("@id", staffId);
                         cmd.Parameters.AddWithValue("@reason", reason ?? "");
@@ -1660,6 +1753,91 @@ ORDER BY r.recipe_name, r.id";
             {
                 msg.message = "Error: " + ex.Message;
                 Console.WriteLine("SubmitResign error: " + ex.Message);
+            }
+            return msg;
+        }
+
+        public List<dynamic> GetResignApprovals()
+        {
+            var list = new List<dynamic>();
+            try
+            {
+                using (var conn = _connectionFactory.CreateConnection())
+                {
+                    conn.Open();
+                    EnsureResignApprovalColumn(conn);
+                    const string sql = @"
+                        SELECT rs.id AS resign_id, rs.registration_id, rs.reason, rs.resign_at AS resign,
+                               rs.approval_status, r.registration_name AS name, ro.role_name
+                        FROM resigns rs
+                        JOIN registrations r ON r.id = rs.registration_id
+                        LEFT JOIN roles ro ON ro.id = r.role_id
+                        ORDER BY rs.resign_at DESC, rs.id DESC";
+
+                    using (var cmd = new MySqlCommand(sql, conn))
+                    using (var rdr = cmd.ExecuteReader())
+                    {
+                        while (rdr.Read())
+                        {
+                            list.Add(new
+                            {
+                                resign_id = rdr["resign_id"] == DBNull.Value ? 0 : Convert.ToInt32(rdr["resign_id"]),
+                                registration_id = rdr["registration_id"] == DBNull.Value ? 0 : Convert.ToInt32(rdr["registration_id"]),
+                                name = rdr["name"]?.ToString() ?? "",
+                                role_name = rdr["role_name"]?.ToString() ?? "",
+                                reason = rdr["reason"]?.ToString() ?? "",
+                                resign = rdr["resign"] == DBNull.Value ? (DateTime?)null : Convert.ToDateTime(rdr["resign"]),
+                                approval_status = rdr["approval_status"]?.ToString() ?? "Pending"
+                            });
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("GetResignApprovals error: " + ex.Message);
+            }
+            return list;
+        }
+
+        public Models.Message SetResignApproval(int resignId, string decision)
+        {
+            var msg = new Models.Message();
+            try
+            {
+                if (resignId <= 0)
+                {
+                    msg.message = "Error: Invalid resign id";
+                    return msg;
+                }
+
+                var normalized = (decision ?? "").Trim().ToLowerInvariant();
+                if (normalized != "approve" && normalized != "reject")
+                {
+                    msg.message = "Error: Invalid decision";
+                    return msg;
+                }
+
+                var newStatus = normalized == "approve" ? "Approved" : "Rejected";
+
+                using (var conn = _connectionFactory.CreateConnection())
+                {
+                    conn.Open();
+                    EnsureResignApprovalColumn(conn);
+                    using (var cmd = new MySqlCommand(
+                        "UPDATE resigns SET approval_status = @status WHERE id = @resignId AND LOWER(COALESCE(approval_status, 'Pending')) = 'pending'", conn))
+                    {
+                        cmd.Parameters.AddWithValue("@status", newStatus);
+                        cmd.Parameters.AddWithValue("@resignId", resignId);
+                        var rows = cmd.ExecuteNonQuery();
+                        msg.message = rows > 0 ? "Success" : "Error: Request already processed or not found";
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                msg.message = "Error: " + ex.Message;
+                Console.WriteLine("SetResignApproval error: " + ex.Message);
             }
             return msg;
         }

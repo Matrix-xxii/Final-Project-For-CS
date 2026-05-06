@@ -1,0 +1,120 @@
+@{
+    ViewData["Title"] = "Resign Approval";
+}
+
+<div class="content-header">
+    <div class="container-fluid">
+        <h1 class="m-0">Resign Approval</h1>
+    </div>
+</div>
+
+<section class="content">
+    <div class="container-fluid">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h3 class="card-title font-weight-bold">Staff Resignation Requests</h3>
+                <button class="btn btn-sm btn-outline-primary" onclick="loadResignApprovals()"><i class="fas fa-sync"></i> Refresh</button>
+            </div>
+            <div class="card-body">
+                <div class="mb-2 font-weight-bold" id="approvalCount"></div>
+                <table id="approvalTable" class="table table-bordered table-striped">
+                    <thead>
+                        <tr>
+                            <th>No.</th>
+                            <th>Name</th>
+                            <th>Role</th>
+                            <th>Reason</th>
+                            <th>Submitted At</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
+
+@section Scripts {
+<script>
+    $(document).ready(function () {
+        loadResignApprovals();
+    });
+
+    function debugLog(hypothesisId, message, data) {
+        // #region agent log
+        fetch('http://127.0.0.1:7765/ingest/e5643bba-007a-4618-b444-3d5149c3d1ba',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'3b1609'},body:JSON.stringify({sessionId:'3b1609',runId:'initial',hypothesisId:hypothesisId,location:'Views/Entry/ResignApproval.cshtml',message:message,data:data||{},timestamp:Date.now()})}).catch(()=>{});
+        // #endregion
+    }
+
+    function statusBadge(status) {
+        const s = (status || 'Pending').toLowerCase();
+        if (s === 'approved') return '<span class="badge badge-success">Approved</span>';
+        if (s === 'rejected') return '<span class="badge badge-danger">Rejected</span>';
+        return '<span class="badge badge-warning">Pending</span>';
+    }
+
+    function loadResignApprovals() {
+        debugLog('H1', 'loadResignApprovals request start', { url: '/api/admin/get_resign_approvals' });
+        $.get('/api/admin/get_resign_approvals', function (res) {
+            const rows = (res && res.records) ? res.records : [];
+            debugLog('H3', 'loadResignApprovals success', { hasRecordsArray: Array.isArray(rows), totalRows: rows.length, firstRowKeys: rows[0] ? Object.keys(rows[0]) : [] });
+            let html = '';
+
+            rows.forEach(function (r, idx) {
+                const submitted = r.resign ? new Date(r.resign).toLocaleString() : '-';
+                const status = r.approval_status || 'Pending';
+                const disabled = status.toLowerCase() !== 'pending' ? 'disabled' : '';
+
+                html += `<tr>
+                    <td>${idx + 1}</td>
+                    <td>${r.name || '-'}</td>
+                    <td>${r.role_name || '-'}</td>
+                    <td>${r.reason || '-'}</td>
+                    <td>${submitted}</td>
+                    <td>${statusBadge(status)}</td>
+                    <td>
+                        <button class="btn btn-sm btn-success mr-1" ${disabled} onclick="decideResign(${r.resign_id}, 'approve')">Approve</button>
+                        <button class="btn btn-sm btn-danger" ${disabled} onclick="decideResign(${r.resign_id}, 'reject')">Reject</button>
+                    </td>
+                </tr>`;
+            });
+
+            if (!html) {
+                html = '<tr><td colspan="7" class="text-center text-muted">No resignation requests.</td></tr>';
+            }
+
+            $('#approvalTable tbody').html(html);
+            const pending = rows.filter(r => (r.approval_status || 'Pending').toLowerCase() === 'pending').length;
+            $('#approvalCount').text(`Total Requests: ${rows.length} | Pending: ${pending}`);
+        }).fail(function (xhr) {
+            debugLog('H1', 'loadResignApprovals failed', { status: xhr.status, responseText: xhr.responseText || '' });
+            alert('Failed to load resignation approvals');
+        });
+    }
+
+    function decideResign(resignId, decision) {
+        if (!confirm(`Are you sure to ${decision} this resignation?`)) return;
+        debugLog('H2', 'decideResign request start', { url: '/api/admin/set_resign_approval', resign_id: resignId, decision: decision });
+
+        $.ajax({
+            type: 'POST',
+            url: '/api/admin/set_resign_approval',
+            data: JSON.stringify({ resign_id: resignId, decision: decision }),
+            contentType: 'application/json; charset=utf-8',
+            dataType: 'json'
+        }).done(function (res) {
+            debugLog('H2', 'decideResign response', { message: res ? res.message : null, response: res || null });
+            if (res.message === 'Success') {
+                loadResignApprovals();
+            } else {
+                alert(res.message || 'Failed to update approval');
+            }
+        }).fail(function (xhr) {
+            debugLog('H4', 'decideResign failed', { status: xhr.status, responseText: xhr.responseText || '' });
+            alert('Failed to update approval');
+        });
+    }
+</script>
+}

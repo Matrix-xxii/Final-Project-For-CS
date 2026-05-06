@@ -1,4 +1,4 @@
-﻿@{
+@{
     ViewData["Title"] = "Table Order";
     Layout = "~/Views/Shared/_LayoutWebsite.cshtml";
     int tableNumber = ViewData["TableNumber"] != null ? (int)ViewData["TableNumber"] : 0;
@@ -496,7 +496,8 @@
                                     title="More info"
                                     data-recipe-name="@item.recipe_name"
                                     data-recipe-img="@item.recipe_img"
-                                    data-recipe-desc="@item.description">
+                                    data-recipe-desc="@item.description"
+                                    data-recipe-ingredients="@item.ingredients">
                                 <i class="fas fa-info"></i>
                             </button>
                         </div>
@@ -682,6 +683,7 @@
             showRecipeInfo(
                 $(this).data('recipe-name'),
                 $(this).data('recipe-desc'),
+                $(this).data('recipe-ingredients'),
                 $(this).data('recipe-img'),
                 $(this).closest('.food-card').find('.food-card-category').text()
             );
@@ -698,19 +700,11 @@
         });
     });
 
-    function extractIngredients(description) {
-        if (!description) return 'No ingredient information available.';
-        const marker = /ingredients[:\-\s]*/i;
-        const parts = description.split(marker);
-        if (parts.length > 1 && parts[1].trim()) return parts[1].trim();
-        return description;
-    }
-
-    function showRecipeInfo(name, description, img, category) {
+    function showRecipeInfo(name, description, ingredients, img, category) {
         $('#recipeModalTitle').text(name || 'Recipe');
         $('#recipeModalCategory').text(category || '');
         $('#recipeModalDesc').text(description || 'No description available.');
-        $('#recipeModalIngredients').text(extractIngredients(description));
+        $('#recipeModalIngredients').text(ingredients || 'No ingredient information available.');
         $('#recipeModalImg')
             .attr('src', img || '/img/placeholder.png')
             .on('error', function() { this.src = '/img/placeholder.png'; });

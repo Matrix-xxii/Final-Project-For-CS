@@ -1,8 +1,7 @@
-﻿@{
+@{
     ViewData["Title"] = "Home Page";
     var isAdmin = User.FindFirst("RoleName")?.Value == "Admin";
 }
-
 
 <div class="content-header">
     <div class="container-fluid"></div>
@@ -12,9 +11,7 @@
     <div class="container-fluid">
         @if (isAdmin)
         {
-            <!-- Stat Widgets -->
             <div class="row">
-
                 <div class="col-lg-3 col-6">
                     <div class="small-box bg-info">
                         <div class="inner">
@@ -60,18 +57,51 @@
                 </div>
 
                 <div class="col-lg-3 col-6">
-                    <div class="small-box bg-danger">
+                    <div class="small-box bg-primary">
                         <div class="inner">
-                            <h3 id="resignCount">0</h3>
-                            <p>Resignations</p>
+                            <h3 id="orderHistoryCount">0</h3>
+                            <p>Order History</p>
                         </div>
-                        <div class="icon"><i class="fas fa-user-times"></i></div>
-                        <a href="@Url.Action("StaffResignRecords", "Entry")" class="small-box-footer">View Records <i class="fas fa-arrow-circle-right"></i></a>
+                        <div class="icon"><i class="fas fa-history"></i></div>
+                        <a href="@Url.Action("OrderHistory", "Entry")" class="small-box-footer">More info <i class="fas fa-arrow-circle-right"></i></a>
                     </div>
                 </div>
 
+                <div class="col-lg-3 col-6">
+                    <div class="small-box bg-danger">
+                        <div class="inner">
+                            <h3 id="resignMessageCount">0</h3>
+                            <p>Resign Messages</p>
+                        </div>
+                        <div class="icon"><i class="fas fa-envelope"></i></div>
+                        <a href="@Url.Action("ResignApproval", "Entry")" class="small-box-footer">Review <i class="fas fa-arrow-circle-right"></i></a>
+                    </div>
+                </div>
+
+                <div class="col-lg-3 col-6">
+                    <div class="small-box bg-teal">
+                        <div class="inner">
+                            <h3 id="totalIncome">0 MMK</h3>
+                            <p>Selling Income</p>
+                        </div>
+                        <div class="icon"><i class="fas fa-chart-line"></i></div>
+                        <a href="@Url.Action("OrderHistory", "Entry")" class="small-box-footer">View Orders <i class="fas fa-arrow-circle-right"></i></a>
+                    </div>
+                </div>
             </div>
 
+            <div class="row">
+                <div class="col-12">
+                    <div class="card card-outline card-primary">
+                        <div class="card-header">
+                            <h3 class="card-title font-weight-bold">Sales Income (Last 7 Days)</h3>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="incomeChart" height="95"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
         }
     </div>
 </section>
@@ -79,29 +109,87 @@
 @section Scripts {
 @if (isAdmin)
 {
+<script src="~/plugins/chart.js/Chart.min.js"></script>
 <script>
     var dashLoaded = false;
+    var incomeChart = null;
 
     $(document).ready(function () {
         if (dashLoaded) return;
         dashLoaded = true;
         loadCounts();
+        loadSalesChart();
     });
 
     function loadCounts() {
         $.ajax({
-            type: 'GET', url: '/api/get_counts', cache: false, timeout: 10000
+            type: 'GET',
+            url: '/api/get_counts',
+            cache: false,
+            timeout: 10000
         }).done(function (res) {
             $('#staffCount').text(res.staff_count || 0);
             $('#categoryCount').text(res.category_count || 0);
             $('#recipeCount').text(res.recipe_count || 0);
             $('#roleCount').text(res.role_count || 0);
-            $('#resignCount').text(res.resign_count || 0);
+            $('#orderHistoryCount').text(res.order_history_count || 0);
+            $('#resignMessageCount').text(res.resign_message_count || 0);
+            var income = parseFloat(res.total_income || 0);
+            $('#totalIncome').text(income.toLocaleString() + ' MMK');
         }).fail(function () {
             console.error('Failed to load counts');
+        });
+    }
+
+    function loadSalesChart() {
+        $.get('/api/admin/sales_chart', { days: 7 }, function (res) {
+            var series = (res && res.series) ? res.series : [];
+            var labels = [];
+            var values = [];
+
+            series.forEach(function (it) {
+                labels.push((it.sale_date || '').toString());
+                values.push(parseFloat(it.total_income || 0));
+            });
+
+            if (incomeChart) {
+                incomeChart.destroy();
+            }
+
+            var ctx = document.getElementById('incomeChart').getContext('2d');
+            incomeChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Income (MMK)',
+                        data: values,
+                        borderColor: '#17a2b8',
+                        backgroundColor: 'rgba(23,162,184,0.15)',
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: true
+                        }
+                    }
+                }
+            });
+        }).fail(function () {
+            console.error('Failed to load sales chart');
         });
     }
 </script>
 }
 }
-

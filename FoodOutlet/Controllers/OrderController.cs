@@ -1,6 +1,7 @@
 using FoodOutlet.AppCode;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Text.Json;
 
 namespace FoodOutlet.Controllers
 {
@@ -16,6 +17,29 @@ namespace FoodOutlet.Controllers
 
         private string Role => User.FindFirst("RoleName")?.Value ?? "";
 
+        private void DebugLog(string runId, string hypothesisId, string location, string message, object data)
+        {
+            // #region agent log
+            try
+            {
+                var payload = JsonSerializer.Serialize(new
+                {
+                    sessionId = "3b1609",
+                    runId,
+                    hypothesisId,
+                    location,
+                    message,
+                    data,
+                    timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
+                });
+                System.IO.File.AppendAllText(@"D:\MLM\Final\debug-3b1609.log", payload + Environment.NewLine);
+            }
+            catch
+            {
+            }
+            // #endregion
+        }
+
         // Allowed next-statuses per role + current status
         private static readonly Dictionary<string, Dictionary<string, string[]>> AllowedTransitions =
             new()
@@ -25,7 +49,7 @@ namespace FoodOutlet.Controllers
                     ["Pending"]  = new[] { "Approved", "Cancelled" },
                     ["Served"]   = new[] { "Cleaning" },
                 },
-                ["Chief"] = new()
+                ["Chef"] = new()
                 {
                     ["Approved"] = new[] { "Ready", "Cancelled" },
                 },
@@ -43,17 +67,23 @@ namespace FoodOutlet.Controllers
         private static readonly Dictionary<string, string[]> RoleStatuses = new()
         {
             ["Cashier"] = new[] { "Pending", "Served" },
-            ["Chief"]   = new[] { "Approved" },
+            ["Chef"]    = new[] { "Approved" },
             ["Waiter"]  = new[] { "Ready" },
             ["Cleaner"] = new[] { "Cleaning" },
         };
 
         public IActionResult Index()
         {
+            DebugLog("post-fix", "H1", "Controllers/OrderController.cs:Index", "order index hit", new { role = Role });
             if (!RoleStatuses.TryGetValue(Role, out var statuses))
+            {
+                DebugLog("post-fix", "H1", "Controllers/OrderController.cs:Index", "role not in RoleStatuses", new { role = Role, knownRoles = RoleStatuses.Keys });
                 return Forbid();
+            }
 
+            DebugLog("post-fix", "H2", "Controllers/OrderController.cs:Index", "role statuses resolved", new { role = Role, statuses });
             var orders = _staff.GetOrdersWithItems(statuses);
+            DebugLog("post-fix", "H3", "Controllers/OrderController.cs:Index", "orders loaded for role", new { role = Role, count = orders.Count });
             ViewData["Role"] = Role;
 
             // Cashier's Served queue is shown grouped by table (one card per table)
@@ -73,8 +103,12 @@ namespace FoodOutlet.Controllers
             if (req == null)
                 return BadRequest(new { success = false, message = "Invalid request." });
 
+            DebugLog("post-fix", "H4", "Controllers/OrderController.cs:UpdateStatus", "update status requested", new { role = Role, order_id = req.order_id, new_status = req.new_status });
             if (!AllowedTransitions.TryGetValue(Role, out var byStatus))
+            {
+                DebugLog("post-fix", "H4", "Controllers/OrderController.cs:UpdateStatus", "role not in AllowedTransitions", new { role = Role, knownRoles = AllowedTransitions.Keys });
                 return StatusCode(403, new { success = false, message = "Not authorised." });
+            }
 
             var orders = _staff.GetOrdersWithItems(byStatus.Keys.ToArray());
             var order  = orders.FirstOrDefault(o => (int)o.order_id == req.order_id);

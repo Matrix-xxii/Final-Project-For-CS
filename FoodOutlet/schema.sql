@@ -1,4 +1,4 @@
-﻿-- =========================
+-- =========================
 -- Roles
 -- =========================
 CREATE TABLE Roles (
@@ -54,6 +54,7 @@ CREATE TABLE Recipes (
     category_id INT,
     recipe_img VARCHAR(255),
     description TEXT,
+    ingredients TEXT,
     price DECIMAL(10,2),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (category_id) REFERENCES Categories(id)

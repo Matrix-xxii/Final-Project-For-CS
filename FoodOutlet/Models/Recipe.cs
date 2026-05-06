@@ -7,6 +7,7 @@ namespace FoodOutlet.Models
         public int category_id { get; set; }
         public string recipe_img { get; set; }
         public string description { get; set; }
+        public string ingredients { get; set; }
         public decimal price { get; set; }
     }
 }

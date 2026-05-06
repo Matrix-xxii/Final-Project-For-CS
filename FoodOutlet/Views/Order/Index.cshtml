@@ -3,7 +3,7 @@
     var role      = ViewData["Role"] as string ?? "";
     var pageTitle = role switch {
         "Cashier" => "Cashier — Order Queue",
-        "Chief"   => "Chef — Cooking Queue",
+        "Chef"    => "Chef — Cooking Queue",
         "Waiter"  => "Waiter — Serving Queue",
         "Cleaner" => "Cleaner — Table Queue",
         _         => "Orders"
@@ -24,19 +24,19 @@
 
     // Section label/icon for non-cashier roles
     var sectionIcon  = role switch {
-        "Chief"   => "fa-fire",
+        "Chef"    => "fa-fire",
         "Waiter"  => "fa-concierge-bell",
         "Cleaner" => "fa-broom",
         _         => "fa-list"
     };
     var sectionColor = role switch {
-        "Chief"   => "text-warning",
+        "Chef"    => "text-warning",
         "Waiter"  => "text-success",
         "Cleaner" => "text-secondary",
         _         => "text-primary"
     };
     var sectionLabel = role switch {
-        "Chief"   => "Orders Ready to Cook",
+        "Chef"    => "Orders Ready to Cook",
         "Waiter"  => "Meals Ready to Serve",
         "Cleaner" => "Tables to Clean",
         _         => "Queue"
@@ -44,7 +44,7 @@
 
     // Action buttons per role: [label, icon, css-class, next-status]
     var roleButtons = role switch {
-        "Chief" => new[] {
+        "Chef" => new[] {
             new[] { "Approve", "fa-check",        "btn-success", "Ready"     },
             new[] { "Cancel",  "fa-times",         "btn-danger",  "Cancelled" },
         },
