@@ -40,7 +40,10 @@ namespace FoodOutlet.Controllers
 
             if (staff == null)
             {
-                ViewData["Error"] = "Invalid email or password.";
+                var blocked = _staff.IsLoginBlockedByResignation(email.Trim(), password);
+                ViewData["Error"] = blocked
+                    ? "Your resignation is pending or approved — you cannot log in. If your resignation was rejected, try again or contact an administrator."
+                    : "Invalid email or password.";
                 ViewData["ReturnUrl"] = returnUrl;
                 return View();
             }

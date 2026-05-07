@@ -557,8 +557,22 @@ namespace FoodOutlet.Controllers
                 { "category_count", _staff.GetCategoryCount() },
                 { "recipe_count", _staff.GetRecipeCount() },
                 { "role_count", _staff.GetRoleCount() },
-                { "resign_count", _staff.GetResignCount() }
+                { "resign_count", _staff.GetResignCount() },
+                { "order_history_count", _staff.GetOrderHistoryCount() },
+                { "resign_message_count", _staff.GetResignPendingCount() }
             };
+        }
+
+        [HttpGet("api/admin/sales_chart")]
+        public Dictionary<string, dynamic> GetSalesChart(int days = 7)
+        {
+            return new Dictionary<string, dynamic> { { "series", _staff.GetSalesChartData(days) } };
+        }
+
+        [HttpGet("api/admin/order_history")]
+        public Dictionary<string, dynamic> GetAdminOrderHistory()
+        {
+            return new Dictionary<string, dynamic> { { "orders", _staff.GetOrderHistoryAll() } };
         }
 
         [HttpGet("api/get_all_tables")]

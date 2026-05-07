@@ -1,6 +1,92 @@
-@{
+﻿@{
     ViewData["Title"] = "Home Page";
     var isAdmin = User.FindFirst("RoleName")?.Value == "Admin";
+}
+
+@if (isAdmin)
+{
+    <style>
+        .small-box .inner h3 {
+            font-size: 1.2rem !important;
+        }
+
+        #incomeChartWrap {
+            position: relative;
+            height: 320px;
+            width: 100%;
+        }
+
+        .chart-filter-group .btn {
+            min-width: 0;
+            padding: 0.25rem 0.6rem;
+            font-size: 0.85rem;
+            white-space: nowrap;
+        }
+
+        .chart-filter-group .btn.active {
+            background-color: #17a2b8;
+            color: #fff;
+            border-color: #17a2b8;
+        }
+
+        #chartTitle {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-size: 1rem;
+        }
+
+        .chart-card-header {
+            flex-wrap: nowrap;
+            align-items: center;
+            gap: 0.75rem;
+            width: 100%;
+        }
+
+        .chart-card-header .chart-header-title-wrap {
+            flex: 0 1 auto;
+            min-width: 0;
+            max-width: 42%;
+        }
+
+        .chart-card-header .chart-header-controls {
+            flex: 1 1 0;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 10px;
+            min-width: 0;
+            text-align: right;
+        }
+
+        .chart-period-summary {
+            font-size: 0.8125rem;
+            color: #495057;
+            line-height: 1.35;
+            flex: 0 1 auto;
+            max-width: 100%;
+        }
+
+        .chart-card-header .card-title {
+            float: none;
+        }
+
+        @@media (max-width: 576px) {
+            .chart-card-header {
+                flex-wrap: wrap;
+            }
+            .chart-card-header .chart-header-title-wrap {
+                width: 100%;
+                max-width: none;
+            }
+            .chart-card-header .chart-header-controls {
+                width: 100%;
+                flex: none;
+                justify-content: flex-end;
+            }
+        }
+    </style>
 }
 
 <div class="content-header">
@@ -77,27 +163,30 @@
                         <a href="@Url.Action("ResignApproval", "Entry")" class="small-box-footer">Review <i class="fas fa-arrow-circle-right"></i></a>
                     </div>
                 </div>
-
-                <div class="col-lg-3 col-6">
-                    <div class="small-box bg-teal">
-                        <div class="inner">
-                            <h3 id="totalIncome">0 MMK</h3>
-                            <p>Selling Income</p>
-                        </div>
-                        <div class="icon"><i class="fas fa-chart-line"></i></div>
-                        <a href="@Url.Action("OrderHistory", "Entry")" class="small-box-footer">View Orders <i class="fas fa-arrow-circle-right"></i></a>
-                    </div>
-                </div>
             </div>
 
             <div class="row">
                 <div class="col-12">
-                    <div class="card card-outline card-primary">
-                        <div class="card-header">
-                            <h3 class="card-title font-weight-bold">Sales Income (Last 7 Days)</h3>
+                    <div class="card card-outline card-info">
+                        <div class="card-header chart-card-header d-flex align-items-center">
+                            <div class="chart-header-title-wrap">
+                                <h3 class="card-title font-weight-bold mb-0" id="chartTitle">Sales Income (Last 7 Days)</h3>
+                            </div>
+                            <div class="chart-header-controls">
+                                <div id="chartPeriodSummary" class="chart-period-summary mb-0"></div>
+                                <div class="btn-group btn-group-sm chart-filter-group flex-shrink-0" role="group" aria-label="Chart range filter">
+                                    <button type="button" class="btn btn-outline-info active" data-days="7" data-label="Last 7 Days">7D</button>
+                                    <button type="button" class="btn btn-outline-info" data-days="30" data-label="Last 1 Month">1M</button>
+                                    <button type="button" class="btn btn-outline-info" data-days="90" data-label="Last 3 Months">3M</button>
+                                    <button type="button" class="btn btn-outline-info" data-days="180" data-label="Last 6 Months">6M</button>
+                                    <button type="button" class="btn btn-outline-info" data-days="365" data-label="Last 1 Year">1Y</button>
+                                </div>
+                            </div>
                         </div>
                         <div class="card-body">
-                            <canvas id="incomeChart" height="95"></canvas>
+                            <div id="incomeChartWrap">
+                                <canvas id="incomeChart"></canvas>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -118,7 +207,15 @@
         if (dashLoaded) return;
         dashLoaded = true;
         loadCounts();
-        loadSalesChart();
+        loadSalesChart(7, 'Last 7 Days');
+
+        $('.chart-filter-group .btn').on('click', function () {
+            $('.chart-filter-group .btn').removeClass('active');
+            $(this).addClass('active');
+            var days = parseInt($(this).data('days'), 10) || 7;
+            var label = $(this).data('label') || ('Last ' + days + ' Days');
+            loadSalesChart(days, label);
+        });
     });
 
     function loadCounts() {
@@ -134,55 +231,159 @@
             $('#roleCount').text(res.role_count || 0);
             $('#orderHistoryCount').text(res.order_history_count || 0);
             $('#resignMessageCount').text(res.resign_message_count || 0);
-            var income = parseFloat(res.total_income || 0);
-            $('#totalIncome').text(income.toLocaleString() + ' MMK');
         }).fail(function () {
             console.error('Failed to load counts');
         });
     }
 
-    function loadSalesChart() {
-        $.get('/api/admin/sales_chart', { days: 7 }, function (res) {
-            var series = (res && res.series) ? res.series : [];
-            var labels = [];
-            var values = [];
+    function buildBucketKeys(days) {
+        var keys = [];
+        var labels = [];
+        var today = new Date();
+        today.setHours(0, 0, 0, 0);
+        var monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
-            series.forEach(function (it) {
-                labels.push((it.sale_date || '').toString());
-                values.push(parseFloat(it.total_income || 0));
-            });
+        if (days <= 31) {
+            for (var i = days - 1; i >= 0; i--) {
+                var d = new Date(today);
+                d.setDate(today.getDate() - i);
+                var k = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+                keys.push(k);
+                labels.push(monthNames[d.getMonth()] + ' ' + d.getDate());
+            }
+            return { granularity: 'day', keys: keys, labels: labels };
+        }
+
+        var months = days >= 365 ? 12 : (days >= 180 ? 6 : 3);
+        for (var m = months - 1; m >= 0; m--) {
+            var dt = new Date(today.getFullYear(), today.getMonth() - m, 1);
+            var k = dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0');
+            keys.push(k);
+            labels.push(monthNames[dt.getMonth()] + ' ' + dt.getFullYear());
+        }
+        return { granularity: 'month', keys: keys, labels: labels };
+    }
+
+    function bucketSeries(series, granularity) {
+        var totals = {};
+        (series || []).forEach(function (it) {
+            var dateStr = (it.sale_date || '').toString();
+            if (!dateStr) return;
+            var k = granularity === 'month' ? dateStr.substring(0, 7) : dateStr.substring(0, 10);
+            totals[k] = (totals[k] || 0) + parseFloat(it.total_income || 0);
+        });
+        return totals;
+    }
+
+    function formatPeriodRangeText(bucket) {
+        if (!bucket || !bucket.keys || bucket.keys.length === 0) return '';
+        var monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        var first = bucket.keys[0];
+        var last = bucket.keys[bucket.keys.length - 1];
+
+        if (bucket.granularity === 'month') {
+            function parseYm(k) {
+                var parts = k.split('-');
+                return { y: parseInt(parts[0], 10), m: parseInt(parts[1], 10) - 1 };
+            }
+            var a = parseYm(first);
+            var b = parseYm(last);
+            var s = monthNames[a.m] + ' ' + a.y;
+            var e = monthNames[b.m] + ' ' + b.y;
+            return s === e ? s : (s + ' – ' + e);
+        }
+
+        function parseDay(k) {
+            var p = k.split('-');
+            return new Date(parseInt(p[0], 10), parseInt(p[1], 10) - 1, parseInt(p[2], 10));
+        }
+        var d1 = parseDay(first);
+        var d2 = parseDay(last);
+        function fmt(d) {
+            return monthNames[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear();
+        }
+        return fmt(d1) + ' – ' + fmt(d2);
+    }
+
+    function formatMmk(value) {
+        return Math.round(value).toLocaleString();
+    }
+
+    function loadSalesChart(days, title) {
+        days = days || 7;
+        title = title || ('Last ' + days + ' Days');
+        $('#chartTitle').text('Sales Income (' + title + ')');
+
+        $.get('/api/admin/sales_chart', { days: days }, function (res) {
+            var bucket = buildBucketKeys(days);
+            var totals = bucketSeries(res && res.series, bucket.granularity);
+            var values = bucket.keys.map(function (k) { return totals[k] || 0; });
+            var periodTotal = values.reduce(function (a, b) { return a + b; }, 0);
+            var rangeText = formatPeriodRangeText(bucket);
+
+            $('#chartPeriodSummary').html(
+                '<strong>Period total:</strong> ' + formatMmk(periodTotal) + ' MMK &nbsp;|&nbsp; <strong>Duration:</strong> ' + rangeText
+            );
 
             if (incomeChart) {
                 incomeChart.destroy();
             }
 
             var ctx = document.getElementById('incomeChart').getContext('2d');
+            var gradient = ctx.createLinearGradient(0, 0, 0, 320);
+            gradient.addColorStop(0, 'rgba(23,162,184,0.45)');
+            gradient.addColorStop(1, 'rgba(23,162,184,0.02)');
+
             incomeChart = new Chart(ctx, {
                 type: 'line',
                 data: {
-                    labels: labels,
+                    labels: bucket.labels,
                     datasets: [{
                         label: 'Income (MMK)',
                         data: values,
                         borderColor: '#17a2b8',
-                        backgroundColor: 'rgba(23,162,184,0.15)',
+                        backgroundColor: gradient,
+                        borderWidth: 2,
                         fill: true,
-                        tension: 0.3,
-                        pointRadius: 3
+                        tension: 0.35,
+                        pointRadius: bucket.granularity === 'day' && days > 14 ? 2 : 4,
+                        pointHoverRadius: 6,
+                        pointBackgroundColor: '#17a2b8',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            beginAtZero: true
+                    legend: { display: false },
+                    tooltips: {
+                        mode: 'index',
+                        intersect: false,
+                        callbacks: {
+                            label: function (item) {
+                                return ' Income: ' + formatMmk(item.yLabel) + ' MMK';
+                            }
                         }
                     },
-                    plugins: {
-                        legend: {
-                            display: true
-                        }
+                    hover: { mode: 'nearest', intersect: true },
+                    scales: {
+                        xAxes: [{
+                            gridLines: { display: false },
+                            ticks: {
+                                autoSkip: true,
+                                maxTicksLimit: 12,
+                                maxRotation: 0
+                            }
+                        }],
+                        yAxes: [{
+                            gridLines: { color: 'rgba(0,0,0,0.06)' },
+                            ticks: {
+                                beginAtZero: true,
+                                suggestedMax: 10,
+                                callback: function (v) { return formatMmk(v); }
+                            }
+                        }]
                     }
                 }
             });

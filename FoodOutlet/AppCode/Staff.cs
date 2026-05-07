@@ -57,6 +57,7 @@ namespace FoodOutlet.AppCode
             using (MySqlConnection conn = _connectionFactory.CreateConnection())
             {
                 conn.Open();
+                EnsureResignApprovalColumn(conn);
                 string query = @"
                     SELECT r.id, r.registration_name AS name, r.email, r.phone_no, r.address, r.role_id, r.photo,
                            ro.role_name,
@@ -64,6 +65,7 @@ namespace FoodOutlet.AppCode
                     FROM registrations r
                     LEFT JOIN roles ro ON r.role_id = ro.id
                     LEFT JOIN resigns rs ON r.id = rs.registration_id
+                        AND COALESCE(rs.approval_status, 'Pending') != 'Rejected'
                     ORDER BY r.id";
                 
                 using (MySqlCommand cmd = new MySqlCommand(query, conn))
@@ -803,6 +805,75 @@ ORDER BY r.recipe_name, r.id";
             }
         }
 
+        public int GetOrderHistoryCount()
+        {
+            using (var conn = _connectionFactory.CreateConnection())
+            {
+                conn.Open();
+                using (var cmd = new MySqlCommand("SELECT COUNT(*) FROM `Order`", conn))
+                {
+                    return Convert.ToInt32(cmd.ExecuteScalar());
+                }
+            }
+        }
+
+        public int GetResignPendingCount()
+        {
+            using (var conn = _connectionFactory.CreateConnection())
+            {
+                conn.Open();
+                EnsureResignApprovalColumn(conn);
+                using (var cmd = new MySqlCommand(
+                    "SELECT COUNT(*) FROM resigns WHERE COALESCE(approval_status, 'Pending') = 'Pending'", conn))
+                {
+                    return Convert.ToInt32(cmd.ExecuteScalar());
+                }
+            }
+        }
+
+        public List<dynamic> GetSalesChartData(int days)
+        {
+            var list = new List<dynamic>();
+            try
+            {
+                using (var conn = _connectionFactory.CreateConnection())
+                {
+                    conn.Open();
+                    EnsureOrderDetailOrderId(conn);
+                    const string sql = @"
+                        SELECT DATE(o.created_at) AS sale_date,
+                               COALESCE(SUM(r.price * od.qty), 0) AS total_income
+                        FROM `Order` o
+                        LEFT JOIN order_detail od ON od.order_id = o.id
+                        LEFT JOIN recipes r ON r.id = od.recipe_id
+                        WHERE o.status = 'Done'
+                          AND o.created_at >= DATE_SUB(CURDATE(), INTERVAL @days DAY)
+                        GROUP BY DATE(o.created_at)
+                        ORDER BY sale_date ASC";
+                    using (var cmd = new MySqlCommand(sql, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@days", days);
+                        using (var rdr = cmd.ExecuteReader())
+                        {
+                            while (rdr.Read())
+                            {
+                                list.Add(new
+                                {
+                                    sale_date = rdr["sale_date"] == DBNull.Value ? "" : Convert.ToDateTime(rdr["sale_date"]).ToString("yyyy-MM-dd"),
+                                    total_income = rdr["total_income"] == DBNull.Value ? 0m : Convert.ToDecimal(rdr["total_income"])
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("GetSalesChartData error: " + ex.Message);
+            }
+            return list;
+        }
+
         #endregion
 
         #region Update and Delete
@@ -1369,6 +1440,63 @@ ORDER BY r.recipe_name, r.id";
         }
 
         /// <summary>
+        /// Admin order list: every order with line totals and item summary.
+        /// </summary>
+        public List<dynamic> GetOrderHistoryAll()
+        {
+            var list = new List<dynamic>();
+            try
+            {
+                using (var conn = _connectionFactory.CreateConnection())
+                {
+                    conn.Open();
+                    EnsureOrderDetailOrderId(conn);
+
+                    const string sql = @"
+                        SELECT o.id AS order_id,
+                               o.status,
+                               o.created_at,
+                               tl.table_name AS table_label,
+                               COALESCE(SUM(r.price * od.qty), 0) AS order_total,
+                               GROUP_CONCAT(
+                                   CONCAT(r.recipe_name, ' x', od.qty)
+                                   ORDER BY od.id
+                                   SEPARATOR ', '
+                               ) AS items_summary
+                        FROM `Order` o
+                        JOIN table_lists tl ON tl.id = o.table_id
+                        LEFT JOIN order_detail od ON od.order_id = o.id
+                        LEFT JOIN recipes r ON r.id = od.recipe_id
+                        GROUP BY o.id, o.status, o.created_at, tl.table_name
+                        ORDER BY o.created_at DESC";
+
+                    using (var cmd = new MySqlCommand(sql, conn))
+                    using (var rdr = cmd.ExecuteReader())
+                    {
+                        while (rdr.Read())
+                        {
+                            list.Add(new
+                            {
+                                order_id = rdr["order_id"] == DBNull.Value ? 0 : Convert.ToInt32(rdr["order_id"]),
+                                status = rdr["status"]?.ToString() ?? "",
+                                created_at = rdr["created_at"] == DBNull.Value ? (DateTime?)null : Convert.ToDateTime(rdr["created_at"]),
+                                table_label = rdr["table_label"]?.ToString() ?? "?",
+                                order_total = rdr["order_total"] == DBNull.Value ? 0m : Convert.ToDecimal(rdr["order_total"]),
+                                items_summary = rdr["items_summary"]?.ToString() ?? "—",
+                            });
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("GetOrderHistoryAll error: " + ex.Message);
+            }
+
+            return list;
+        }
+
+        /// <summary>
         /// Returns all active orders for a given table (Pending / Approved / Ready / Served).
         /// Excludes Cleaning, Done, and Cancelled so the list resets once the cashier sends
         /// the table to clean.
@@ -1661,6 +1789,7 @@ ORDER BY r.recipe_name, r.id";
                 using (var conn = _connectionFactory.CreateConnection())
                 {
                     conn.Open();
+                    EnsureResignApprovalColumn(conn);
                     const string sql = @"
                         SELECT r.id, r.registration_name AS name, r.email, r.phone_no, r.address, r.photo,
                                ro.role_name,
@@ -1668,6 +1797,7 @@ ORDER BY r.recipe_name, r.id";
                         FROM registrations r
                         JOIN roles ro ON ro.id = r.role_id
                         LEFT JOIN resigns rs ON rs.registration_id = r.id
+                            AND COALESCE(rs.approval_status, 'Pending') != 'Rejected'
                         WHERE r.id = @id
                         LIMIT 1";
 
@@ -1708,8 +1838,10 @@ ORDER BY r.recipe_name, r.id";
                 using (var conn = _connectionFactory.CreateConnection())
                 {
                     conn.Open();
+                    EnsureResignApprovalColumn(conn);
                     using (var cmd = new MySqlCommand(
-                        "SELECT COUNT(*) FROM resigns WHERE registration_id = @id", conn))
+                        "SELECT COUNT(*) FROM resigns WHERE registration_id = @id AND COALESCE(approval_status, 'Pending') != 'Rejected'",
+                        conn))
                     {
                         cmd.Parameters.AddWithValue("@id", staffId);
                         var count = Convert.ToInt32(cmd.ExecuteScalar());
@@ -1846,6 +1978,42 @@ ORDER BY r.recipe_name, r.id";
 
         #region Auth
 
+        /// <summary>
+        /// True when email/password are correct but login must be refused (pending or approved resignation).
+        /// </summary>
+        public bool IsLoginBlockedByResignation(string email, string password)
+        {
+            try
+            {
+                using (var conn = _connectionFactory.CreateConnection())
+                {
+                    conn.Open();
+                    EnsureResignApprovalColumn(conn);
+                    const string sql = @"
+                        SELECT COUNT(*) FROM registrations r
+                        WHERE r.email = @email AND r.password_hash = @password
+                          AND EXISTS (
+                              SELECT 1 FROM resigns x
+                              WHERE x.registration_id = r.id
+                                AND COALESCE(x.approval_status, 'Pending') != 'Rejected'
+                          )
+                        LIMIT 1";
+                    using (var cmd = new MySqlCommand(sql, conn))
+                    {
+                        cmd.Parameters.AddWithValue("@email", email);
+                        cmd.Parameters.AddWithValue("@password", password);
+                        return Convert.ToInt32(cmd.ExecuteScalar()) > 0;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("IsLoginBlockedByResignation error: " + ex.Message);
+            }
+
+            return false;
+        }
+
         public Models.Staff? LoginStaff(string email, string password)
         {
             try
@@ -1853,12 +2021,18 @@ ORDER BY r.recipe_name, r.id";
                 using (var conn = _connectionFactory.CreateConnection())
                 {
                     conn.Open();
+                    EnsureResignApprovalColumn(conn);
                     const string sql = @"
                         SELECT r.id, r.registration_name AS name, r.email, r.photo,
                                ro.id AS role_id, ro.role_name
                         FROM registrations r
                         JOIN roles ro ON ro.id = r.role_id
                         WHERE r.email = @email AND r.password_hash = @password
+                          AND NOT EXISTS (
+                              SELECT 1 FROM resigns x
+                              WHERE x.registration_id = r.id
+                                AND COALESCE(x.approval_status, 'Pending') != 'Rejected'
+                          )
                         LIMIT 1";
 
                     using (var cmd = new MySqlCommand(sql, conn))
