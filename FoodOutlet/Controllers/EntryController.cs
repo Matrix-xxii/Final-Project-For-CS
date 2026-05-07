@@ -75,11 +75,6 @@ namespace FoodOutlet.Controllers
             return View();
         }
 
-        public IActionResult StaffResignRecords()
-        {
-            return View();
-        }
-
         public IActionResult ResignApproval()
         {
             return View();
@@ -87,6 +82,15 @@ namespace FoodOutlet.Controllers
 
         public IActionResult OrderHistory()
         {
+            return View();
+        }
+
+        /// <summary>
+        /// Table order history — paid/completed (<c>Done</c>) orders only.
+        /// </summary>
+        public IActionResult TableOrderHistory()
+        {
+            ViewData["Title"] = "Table Order History";
             return View();
         }
 
@@ -446,12 +450,6 @@ namespace FoodOutlet.Controllers
             return Ok(new { imageUrl = relative });
         }
 
-        [HttpGet("api/get_resigned_staff")]
-        public Dictionary<string, dynamic> GetResignedStaff()
-        {
-            return new Dictionary<string, dynamic> { { "records", _staff.GetResignRecords() } };
-        }
-
         [HttpGet("api/admin/get_resign_approvals")]
         public Dictionary<string, dynamic> GetResignApprovals()
         {
@@ -575,6 +573,21 @@ namespace FoodOutlet.Controllers
             return new Dictionary<string, dynamic> { { "orders", _staff.GetOrderHistoryAll() } };
         }
 
+        /// <summary>Rows appear here only after bill is closed (status Done).</summary>
+        [HttpGet("api/admin/table_order_history")]
+        public Dictionary<string, dynamic> GetAdminTableOrderHistory()
+        {
+            return new Dictionary<string, dynamic> { { "orders", _staff.GetOrderHistoryPaid() } };
+        }
+
+        [HttpGet("api/admin/table_order_detail/{orderId:int}")]
+        public IActionResult GetAdminTableOrderDetail(int orderId)
+        {
+            var detail = _staff.GetTableOrderPaidDetail(orderId);
+            if (detail == null) return NotFound(new { message = "Order not found or not paid yet." });
+            return Json(detail);
+        }
+
         [HttpGet("api/get_all_tables")]
         public Dictionary<string, dynamic> GetAllTables()
         {
@@ -676,7 +689,7 @@ namespace FoodOutlet.Controllers
         /// </summary>
         [AllowAnonymous]
         [HttpGet("/api/table/order_history")]
-        public IActionResult TableOrderHistory(int tableNumber)
+        public IActionResult CustomerTableOrderHistory(int tableNumber)
         {
             var history = _staff.GetTableOrderHistory(tableNumber);
 

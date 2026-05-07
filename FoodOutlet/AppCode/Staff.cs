@@ -229,64 +229,6 @@ ORDER BY r.recipe_name, r.id";
             return list;
         }
 
-        public List<dynamic> GetResignRecords()
-        {
-            var list = new List<dynamic>();
-            using (var conn = _connectionFactory.CreateConnection())
-            {
-                conn.Open();
-                EnsureResignApprovalColumn(conn);
-                // #region agent log
-                try
-                {
-                    var payload = "{\"sessionId\":\"3b1609\",\"runId\":\"pre-fix\",\"hypothesisId\":\"H5\",\"location\":\"AppCode/Staff.cs:GetResignRecords\",\"message\":\"ensured approval_status column before resign records query\",\"data\":{},\"timestamp\":" + DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() + "}";
-                    File.AppendAllText("debug-3b1609.log", payload + Environment.NewLine);
-                }
-                catch { }
-                // #endregion
-
-                string sql = @"
-                    SELECT r.id, r.registration_name AS name, r.email, r.phone_no, r.address,
-                           r.photo, ro.role_name,
-                           rs.reason, rs.resign_at AS resign,
-                           COALESCE(rs.approval_status, 'Pending') AS approval_status
-                    FROM registrations r
-                    INNER JOIN resigns rs ON r.id = rs.registration_id
-                    JOIN roles ro ON ro.id = r.role_id
-                    ORDER BY rs.resign_at DESC, rs.id DESC";
-
-                using (var cmd = new MySqlCommand(sql, conn))
-                using (var rdr = cmd.ExecuteReader())
-                {
-                    while (rdr.Read())
-                    {
-                        list.Add(new
-                        {
-                            id        = rdr["id"] == DBNull.Value ? 0 : Convert.ToInt32(rdr["id"]),
-                            name      = rdr["name"]?.ToString() ?? "",
-                            email     = rdr["email"]?.ToString() ?? "",
-                            phone_no  = rdr["phone_no"]?.ToString() ?? "",
-                            address   = rdr["address"]?.ToString() ?? "",
-                            photo     = rdr["photo"]?.ToString() ?? "",
-                            role_name = rdr["role_name"]?.ToString() ?? "",
-                            reason    = rdr["reason"]?.ToString() ?? "",
-                            resign    = rdr["resign"] == DBNull.Value ? (DateTime?)null : Convert.ToDateTime(rdr["resign"]),
-                            approval_status = rdr["approval_status"]?.ToString() ?? "Pending"
-                        });
-                    }
-                }
-                // #region agent log
-                try
-                {
-                    var payload = "{\"sessionId\":\"3b1609\",\"runId\":\"pre-fix\",\"hypothesisId\":\"H5\",\"location\":\"AppCode/Staff.cs:GetResignRecords\",\"message\":\"resign records query completed\",\"data\":{\"count\":" + list.Count + "},\"timestamp\":" + DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() + "}";
-                    File.AppendAllText("debug-3b1609.log", payload + Environment.NewLine);
-                }
-                catch { }
-                // #endregion
-            }
-            return list;
-        }
-
         #endregion
 
 
@@ -805,12 +747,15 @@ ORDER BY r.recipe_name, r.id";
             }
         }
 
+        /// <summary>
+        /// Count of paid / closed orders (<c>Done</c>) — dashboard &quot;Table Order History&quot; tile.
+        /// </summary>
         public int GetOrderHistoryCount()
         {
             using (var conn = _connectionFactory.CreateConnection())
             {
                 conn.Open();
-                using (var cmd = new MySqlCommand("SELECT COUNT(*) FROM `Order`", conn))
+                using (var cmd = new MySqlCommand("SELECT COUNT(*) FROM `Order` WHERE status = 'Done'", conn))
                 {
                     return Convert.ToInt32(cmd.ExecuteScalar());
                 }
@@ -1494,6 +1439,147 @@ ORDER BY r.recipe_name, r.id";
             }
 
             return list;
+        }
+
+        /// <summary>
+        /// Paid / completed orders only (<c>Done</c> workflow status — matches dashboard &quot;Paid&quot;).
+        /// </summary>
+        public List<dynamic> GetOrderHistoryPaid()
+        {
+            var list = new List<dynamic>();
+            try
+            {
+                using (var conn = _connectionFactory.CreateConnection())
+                {
+                    conn.Open();
+                    EnsureOrderDetailOrderId(conn);
+
+                    const string sql = @"
+                        SELECT o.id AS order_id,
+                               o.status,
+                               o.created_at,
+                               tl.table_name AS table_label,
+                               COALESCE(SUM(r.price * od.qty), 0) AS order_total,
+                               GROUP_CONCAT(
+                                   CONCAT(r.recipe_name, ' x', od.qty)
+                                   ORDER BY od.id
+                                   SEPARATOR ', '
+                               ) AS items_summary
+                        FROM `Order` o
+                        JOIN table_lists tl ON tl.id = o.table_id
+                        LEFT JOIN order_detail od ON od.order_id = o.id
+                        LEFT JOIN recipes r ON r.id = od.recipe_id
+                        WHERE o.status = 'Done'
+                        GROUP BY o.id, o.status, o.created_at, tl.table_name
+                        ORDER BY o.created_at DESC";
+
+                    using (var cmd = new MySqlCommand(sql, conn))
+                    using (var rdr = cmd.ExecuteReader())
+                    {
+                        while (rdr.Read())
+                        {
+                            list.Add(new
+                            {
+                                order_id = rdr["order_id"] == DBNull.Value ? 0 : Convert.ToInt32(rdr["order_id"]),
+                                status = rdr["status"]?.ToString() ?? "",
+                                created_at = rdr["created_at"] == DBNull.Value ? (DateTime?)null : Convert.ToDateTime(rdr["created_at"]),
+                                table_label = rdr["table_label"]?.ToString() ?? "?",
+                                order_total = rdr["order_total"] == DBNull.Value ? 0m : Convert.ToDecimal(rdr["order_total"]),
+                                items_summary = rdr["items_summary"]?.ToString() ?? "—",
+                            });
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("GetOrderHistoryPaid error: " + ex.Message);
+            }
+
+            return list;
+        }
+
+        /// <summary>
+        /// Full line breakdown for one paid/completed (<c>Done</c>) order — Table Order History detail.
+        /// </summary>
+        public dynamic? GetTableOrderPaidDetail(int orderId)
+        {
+            try
+            {
+                using (var conn = _connectionFactory.CreateConnection())
+                {
+                    conn.Open();
+                    EnsureOrderDetailOrderId(conn);
+
+                    int oid = 0;
+                    string status = "";
+                    DateTime? createdAt = null;
+                    string tableLabel = "?";
+
+                    using (var cmd = new MySqlCommand(
+                        @"SELECT o.id, o.status, o.created_at, tl.table_name
+                          FROM `Order` o
+                          JOIN table_lists tl ON tl.id = o.table_id
+                          WHERE o.id = @id AND o.status = 'Done'
+                          LIMIT 1", conn))
+                    {
+                        cmd.Parameters.AddWithValue("@id", orderId);
+                        using (var rdr = cmd.ExecuteReader())
+                        {
+                            if (!rdr.Read()) return null;
+                            oid = Convert.ToInt32(rdr["id"]);
+                            status = rdr["status"]?.ToString() ?? "";
+                            createdAt = rdr["created_at"] == DBNull.Value ? (DateTime?)null : Convert.ToDateTime(rdr["created_at"]);
+                            tableLabel = rdr["table_name"]?.ToString() ?? "?";
+                        }
+                    }
+
+                    var items = new List<dynamic>();
+                    decimal total = 0m;
+                    using (var cmd = new MySqlCommand(
+                        @"SELECT r.recipe_name, od.qty, r.price
+                          FROM order_detail od
+                          LEFT JOIN recipes r ON r.id = od.recipe_id
+                          WHERE od.order_id = @id
+                          ORDER BY od.id", conn))
+                    {
+                        cmd.Parameters.AddWithValue("@id", orderId);
+                        using (var rdr = cmd.ExecuteReader())
+                        {
+                            while (rdr.Read())
+                            {
+                                int qty = rdr["qty"] == DBNull.Value ? 0 : Convert.ToInt32(rdr["qty"]);
+                                decimal price = rdr["price"] == DBNull.Value ? 0m : Convert.ToDecimal(rdr["price"]);
+                                decimal line = price * qty;
+                                total += line;
+                                items.Add(new
+                                {
+                                    recipe_name = rdr["recipe_name"]?.ToString() ?? "",
+                                    qty,
+                                    price,
+                                    line_total = line
+                                });
+                            }
+                        }
+                    }
+
+                    return new
+                    {
+                        order_id = oid,
+                        status,
+                        created_at = createdAt,
+                        table_label = tableLabel,
+                        items,
+                        order_total = total
+                    };
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("GetTableOrderPaidDetail error: " + ex.Message);
+            }
+
+            return null;
         }
 
         /// <summary>

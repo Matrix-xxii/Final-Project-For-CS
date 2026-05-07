@@ -1,7 +1,17 @@
 ﻿using FoodOutlet.AppCode;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.DataProtection;
 
 var builder = WebApplication.CreateBuilder(args);
+
+if (builder.Environment.IsDevelopment())
+{
+    var keyDir = Path.Combine(Path.GetTempPath(), "FoodOutlet-dp-" + Guid.NewGuid().ToString("N"));
+    Directory.CreateDirectory(keyDir);
+    builder.Services.AddDataProtection()
+        .SetApplicationName("FoodOutlet-dev")
+        .PersistKeysToFileSystem(new DirectoryInfo(keyDir));
+}
 
 builder.Services.AddScoped<IDbConnectionFactory, MySqlConnectionFactory>();
 builder.Services.AddScoped<Staff>();
